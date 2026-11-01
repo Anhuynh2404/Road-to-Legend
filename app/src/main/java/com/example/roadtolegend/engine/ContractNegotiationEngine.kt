@@ -1,6 +1,8 @@
 package com.example.roadtolegend.engine
 
 import com.example.roadtolegend.model.Agent
+import com.example.roadtolegend.model.AgentTier
+import com.example.roadtolegend.model.CareerState
 import com.example.roadtolegend.model.Club
 import com.example.roadtolegend.model.Contract
 import com.example.roadtolegend.model.NegotiationRoundRecord
@@ -13,6 +15,42 @@ import java.util.UUID
 import kotlin.random.Random
 
 object ContractNegotiationEngine {
+
+    /**
+     * Kiểm tra điều kiện mở đàm phán gia hạn hợp đồng với CLB chủ quản.
+     * Mở khi: còn dưới 18 tháng (39 tuần) hợp đồng, hoặc phong độ/danh tiếng tăng cao, hoặc OVR vượt trội.
+     */
+    fun canInitiateRenewal(state: CareerState): Pair<Boolean, String> {
+        if (state.currentContract.isFreeAgent) {
+            return false to "Bạn hiện đang là cầu thủ tự do, hãy tìm CLB mới từ thị trường chuyển nhượng!"
+        }
+        val weeksRemaining = state.currentContract.totalWeeksRemaining
+        val player = state.player
+        val club = state.currentClub
+
+        if (weeksRemaining <= 39) {
+            return true to "Hợp đồng còn dưới 18 tháng ($weeksRemaining tuần), CLB sẵn sàng thảo luận gia hạn."
+        }
+        if (player.form >= 80) {
+            return true to "Phong độ thi đấu xuất sắc (${player.form}/100) khiến ban lãnh đạo mong muốn trói chân bạn lâu dài."
+        }
+        if (player.ovr >= club.squadOvrAverage + 3) {
+            return true to "Trình độ của bạn (OVR ${player.ovr}) vượt trội so với mặt bằng CLB, mở đàm phán nâng tầm hợp đồng."
+        }
+        if (player.domesticReputation >= 45) {
+            return true to "Danh tiếng và tầm ảnh hưởng của bạn đủ lớn để yêu cầu điều chỉnh mức đãi ngộ."
+        }
+        return false to "Hợp đồng của bạn còn dài ($weeksRemaining tuần) và CLB chưa có kế hoạch mở gia hạn lúc này."
+    }
+
+    /**
+     * Kiểm tra điều khoản phá vỡ hợp đồng (Release Clause).
+     * Nếu mức phí đưa ra >= release clause, CLB buộc phải cho phép cầu thủ đàm phán cá nhân.
+     */
+    fun isReleaseClauseTriggered(offerFee: Long, contract: Contract): Boolean {
+        val clause = contract.releaseClause ?: return false
+        return offerFee >= clause
+    }
 
     /**
      * Bắt đầu một phiên đàm phán hợp đồng mới (gia hạn hoặc ký hợp đồng mới).

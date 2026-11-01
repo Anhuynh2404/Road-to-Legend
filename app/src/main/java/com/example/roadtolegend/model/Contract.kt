@@ -4,8 +4,8 @@ package com.example.roadtolegend.model
  * Mô hình hợp đồng chuyên nghiệp đầy đủ chi tiết theo tiêu chuẩn bóng đá quốc tế.
  */
 data class Contract(
-    val clubId: String,
-    val clubName: String,
+    var clubId: String,
+    var clubName: String,
     var weeklyWage: Long,                      // Lương tuần (€ / USD)
     var signingBonus: Long = 0L,               // Tiền thưởng khi đặt bút ký hợp đồng (lót tay)
     var bonusPerAppearance: Long = 50L,        // Thưởng mỗi trận ra sân (đá chính hoặc từ ghế dự bị)

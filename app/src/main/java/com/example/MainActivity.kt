@@ -33,6 +33,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.BusinessCenter
+import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import com.example.roadtolegend.ui.components.ContractNegotiationDialog
+import com.example.roadtolegend.ui.screens.AgentScreen
+import com.example.roadtolegend.ui.screens.ContractScreen
+import com.example.roadtolegend.ui.screens.FinanceScreen
+import com.example.roadtolegend.ui.screens.NewsScreen
+import com.example.roadtolegend.ui.screens.TransferScreen
 import com.example.roadtolegend.ui.screens.CharacterCreationScreen
 import com.example.roadtolegend.ui.screens.DashboardScreen
 import com.example.roadtolegend.ui.screens.LeagueTableScreen
@@ -46,6 +58,7 @@ import com.example.roadtolegend.ui.viewmodel.CareerViewModel
 import com.example.roadtolegend.ui.viewmodel.MainTab
 import com.example.ui.theme.DarkBg
 import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.GoalCoral
 import com.example.ui.theme.GoldPrimary
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.TextMuted
@@ -79,7 +92,20 @@ fun MainAppContainer(viewModel: CareerViewModel) {
     val isSimulating by viewModel.isSimulatingMatch.collectAsState()
     val statusNotification by viewModel.statusNotification.collectAsState()
 
+    val activeNegotiation by viewModel.activeNegotiation.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Hiển thị Dialog Đàm phán Hợp đồng nếu phiên đàm phán đang hoạt động
+    activeNegotiation?.let { session ->
+        ContractNegotiationDialog(
+            session = session,
+            onCounterSubmit = { wage, bonus, years, role, releaseClause ->
+                viewModel.submitCounterProposal(wage, bonus, years, role, releaseClause)
+            },
+            onAcceptAgreement = { viewModel.acceptNegotiationAgreement() },
+            onDismiss = { viewModel.cancelNegotiation() }
+        )
+    }
 
     LaunchedEffect(statusNotification) {
         statusNotification?.let {
@@ -114,6 +140,9 @@ fun MainAppContainer(viewModel: CareerViewModel) {
             )
         }
         AppScreen.MAIN_HUB -> {
+            val pendingOffersCount = careerState?.incomingOffers?.count { it.isPendingPlayerAction } ?: 0
+            val unreadNewsCount = careerState?.newsFeed?.count { !it.isRead } ?: 0
+
             Scaffold(
                 containerColor = DarkBg,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -137,10 +166,52 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                         )
 
                         NavigationBarItem(
-                            selected = currentTab == MainTab.TRAINING,
-                            onClick = { viewModel.selectTab(MainTab.TRAINING) },
-                            icon = { Icon(Icons.Default.FitnessCenter, contentDescription = "Training") },
-                            label = { Text("Tập luyện", fontSize = 10.sp) },
+                            selected = currentTab == MainTab.TRANSFER,
+                            onClick = { viewModel.selectTab(MainTab.TRANSFER) },
+                            icon = {
+                                if (pendingOffersCount > 0) {
+                                    BadgedBox(
+                                        badge = {
+                                            Badge(containerColor = GoalCoral) {
+                                                Text("$pendingOffersCount")
+                                            }
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.SwapHoriz, contentDescription = "Transfer")
+                                    }
+                                } else {
+                                    Icon(Icons.Default.SwapHoriz, contentDescription = "Transfer")
+                                }
+                            },
+                            label = { Text("Chuyển nhượng", fontSize = 9.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = DarkBg,
+                                selectedTextColor = GoldPrimary,
+                                indicatorColor = GoldPrimary,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = currentTab == MainTab.CONTRACT,
+                            onClick = { viewModel.selectTab(MainTab.CONTRACT) },
+                            icon = { Icon(Icons.Default.Assignment, contentDescription = "Contract") },
+                            label = { Text("Hợp đồng", fontSize = 10.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = DarkBg,
+                                selectedTextColor = GoldPrimary,
+                                indicatorColor = GoldPrimary,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = currentTab == MainTab.AGENT,
+                            onClick = { viewModel.selectTab(MainTab.AGENT) },
+                            icon = { Icon(Icons.Default.BusinessCenter, contentDescription = "Agent") },
+                            label = { Text("Đại diện", fontSize = 10.sp) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = DarkBg,
                                 selectedTextColor = GoldPrimary,
@@ -165,38 +236,24 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                         )
 
                         NavigationBarItem(
-                            selected = currentTab == MainTab.SHOP,
-                            onClick = { viewModel.selectTab(MainTab.SHOP) },
-                            icon = { Icon(Icons.Default.ShoppingBag, contentDescription = "Shop") },
-                            label = { Text("Cửa hàng", fontSize = 10.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
-                                unselectedIconColor = TextMuted,
-                                unselectedTextColor = TextMuted
-                            )
-                        )
-
-                        NavigationBarItem(
-                            selected = currentTab == MainTab.LEAGUE_TABLE,
-                            onClick = { viewModel.selectTab(MainTab.LEAGUE_TABLE) },
-                            icon = { Icon(Icons.Default.Leaderboard, contentDescription = "League") },
-                            label = { Text("BXH", fontSize = 10.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
-                                unselectedIconColor = TextMuted,
-                                unselectedTextColor = TextMuted
-                            )
-                        )
-
-                        NavigationBarItem(
-                            selected = currentTab == MainTab.PROFILE_SAVE,
-                            onClick = { viewModel.selectTab(MainTab.PROFILE_SAVE) },
-                            icon = { Icon(Icons.Default.Save, contentDescription = "Profile") },
-                            label = { Text("Hồ sơ", fontSize = 10.sp) },
+                            selected = currentTab == MainTab.NEWS,
+                            onClick = { viewModel.selectTab(MainTab.NEWS) },
+                            icon = {
+                                if (unreadNewsCount > 0) {
+                                    BadgedBox(
+                                        badge = {
+                                            Badge(containerColor = GoalCoral) {
+                                                Text("$unreadNewsCount")
+                                            }
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.Campaign, contentDescription = "News")
+                                    }
+                                } else {
+                                    Icon(Icons.Default.Campaign, contentDescription = "News")
+                                }
+                            },
+                            label = { Text("Tin tức", fontSize = 10.sp) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = DarkBg,
                                 selectedTextColor = GoldPrimary,
@@ -217,6 +274,11 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                     if (state != null) {
                         when (currentTab) {
                             MainTab.DASHBOARD -> DashboardScreen(careerState = state, viewModel = viewModel)
+                            MainTab.CONTRACT -> ContractScreen(careerState = state, viewModel = viewModel)
+                            MainTab.TRANSFER -> TransferScreen(careerState = state, viewModel = viewModel)
+                            MainTab.AGENT -> AgentScreen(careerState = state, viewModel = viewModel)
+                            MainTab.NEWS -> NewsScreen(careerState = state, viewModel = viewModel)
+                            MainTab.FINANCE -> FinanceScreen(careerState = state, viewModel = viewModel)
                             MainTab.TRAINING -> TrainingScreen(careerState = state, viewModel = viewModel)
                             MainTab.MATCHDAY -> MatchScreen(
                                 careerState = state,

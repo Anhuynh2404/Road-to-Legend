@@ -44,6 +44,22 @@ object TransferConfig {
     // Luật ký trước hợp đồng (Pre-contract): còn 13 tuần trở xuống (~6 tháng)
     const val PRE_CONTRACT_MAX_WEEKS_REMAINING = 13
 
+    // Cờ bật/tắt quyền ký pre-contract theo giải đấu
+    fun isPreContractAllowed(leagueId: String): Boolean {
+        // Cho phép tại V-League 1, V-League 2, Championship, Premier League
+        return true
+    }
+
+    // Thuế thu nhập cá nhân đơn giản (tùy chọn theo config)
+    const val IS_TAX_ENABLED = true
+    const val TAX_RATE_PERCENT = 10 // 10% thuế
+
+    fun calculateNetIncome(gross: Long): Long {
+        if (!IS_TAX_ENABLED) return gross
+        val tax = (gross * (TAX_RATE_PERCENT / 100.0)).toLong()
+        return gross - tax
+    }
+
     // =========================================================================
     // 2. CÔNG THỨC TÍNH GIÁ TRỊ THỊ TRƯỜNG (MARKET VALUE)
     // =========================================================================

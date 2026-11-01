@@ -2,6 +2,7 @@ package com.example.roadtolegend.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -111,6 +112,86 @@ fun DashboardScreen(
                             color = TextPrimary
                         )
                     }
+                }
+            }
+        }
+
+        // Banner Cảnh báo có lời đề nghị chuyển nhượng đang chờ
+        val pendingOffersCount = careerState.incomingOffers.count { it.isPendingPlayerAction }
+        if (pendingOffersCount > 0) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = GoldPrimary.copy(alpha = 0.20f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldPrimary)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "📬 BẠN CÓ $pendingOffersCount ĐỀ NGHỊ CHUYỂN NHƯỢNG MỚI!",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = GoldLight
+                            )
+                            Text(
+                                text = "Các CLB đang chờ câu trả lời đàm phán hợp đồng từ bạn.",
+                                fontSize = 11.sp,
+                                color = TextSecondary
+                            )
+                        }
+                        Button(
+                            onClick = { viewModel.selectTab(MainTab.TRANSFER) },
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = DarkBg),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("XEM NGAY", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Cảnh báo Cửa sổ chuyển nhượng / Deadline Day
+        item {
+            val isWindowOpen = careerState.isTransferWindowOpen
+            val isDeadline = careerState.isDeadlineDay
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = if (isDeadline) GoalCoral.copy(alpha = 0.15f) else if (isWindowOpen) PitchGreen.copy(alpha = 0.12f) else DarkSurfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                border = CardDefaults.outlinedCardBorder()
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = when {
+                                isDeadline -> "🔥 DEADLINE DAY: Hôm nay chốt sổ chuyển nhượng!"
+                                isWindowOpen -> "⚡ Cửa sổ chuyển nhượng đang mở"
+                                careerState.currentWeek < 12 -> "⏳ Cửa sổ mùa đông mở ở Tuần 12 (còn ${12 - careerState.currentWeek} tuần)"
+                                else -> "⏳ Cửa sổ mở ở Tuần 24 (còn ${24 - careerState.currentWeek} tuần)"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDeadline) GoalCoral else if (isWindowOpen) PitchGreen else TextSecondary
+                        )
+                    }
+
+                    Text(
+                        text = "Chi tiết ➔",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GoldPrimary,
+                        modifier = Modifier.clickable { viewModel.selectTab(MainTab.TRANSFER) }
+                    )
                 }
             }
         }
@@ -281,6 +362,140 @@ fun DashboardScreen(
                                     lineHeight = 15.sp
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Lối tắt Quản lý sự nghiệp (Career Management Hub)
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text("LỐI TẮT TRUNG TÂM SỰ NGHIỆP", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoldLight)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.selectTab(MainTab.CONTRACT) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        border = CardDefaults.outlinedCardBorder()
+                    ) {
+                        Text("📄 Hợp đồng", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { viewModel.selectTab(MainTab.TRANSFER) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        border = CardDefaults.outlinedCardBorder()
+                    ) {
+                        Text("🔄 Chuyển nhượng", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { viewModel.selectTab(MainTab.AGENT) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        border = CardDefaults.outlinedCardBorder()
+                    ) {
+                        Text("👔 Đại diện", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.selectTab(MainTab.NEWS) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        border = CardDefaults.outlinedCardBorder()
+                    ) {
+                        Text("📰 Tin tức", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { viewModel.selectTab(MainTab.FINANCE) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        border = CardDefaults.outlinedCardBorder()
+                    ) {
+                        Text("💰 Tài chính", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { viewModel.selectTab(MainTab.TRAINING) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        border = CardDefaults.outlinedCardBorder()
+                    ) {
+                        Text("🏋️ Tập luyện", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // 6. Bảng điều khiển Debug mở rộng
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("BẢNG ĐIỀU KHIỂN DEBUG (MÔ PHỎNG NHIỀU MÙA)", fontSize = 12.sp, fontWeight = FontWeight.Black, color = GoldPrimary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Tua nhanh sự nghiệp để kiểm tra tính nhất quán chuyển nhượng, đội hình và ngân sách thế giới AI.",
+                        fontSize = 10.sp,
+                        color = TextSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.debugFastForwardSeasons(1) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("+1 Mùa", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { viewModel.debugFastForwardSeasons(5) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("+5 Mùa", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { viewModel.debugFastForwardSeasons(20) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = DarkBg),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("+20 Mùa", fontSize = 10.sp, fontWeight = FontWeight.Black)
                         }
                     }
                 }

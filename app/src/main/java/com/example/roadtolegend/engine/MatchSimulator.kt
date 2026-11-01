@@ -437,8 +437,12 @@ object MatchSimulator {
         val finalRating = String.format("%.1f", ratingCalc.coerceIn(4.0, 10.0)).toDouble()
         val isMOM = finalRating >= 8.6 && userRole != MatchUserRole.BENCHED
 
-        val wageEarned = contract.weeklyWage
-        val bonusEarned = (userGoals * contract.bonusPerGoal) + (userAssists * contract.bonusPerAssist)
+        val appearanceBonus = if (userRole != MatchUserRole.BENCHED) contract.bonusPerAppearance else 0L
+        val isOpponentCleanSheet = if (isUserHomeTeam) awayScore == 0 else homeScore == 0
+        val isDefensivePosition = player.primaryPosition.category == PositionCategory.DEFENDER || player.primaryPosition.category == PositionCategory.GOALKEEPER
+        val cleanSheetBonus = if (userRole != MatchUserRole.BENCHED && isDefensivePosition && isOpponentCleanSheet) contract.bonusPerCleanSheet else 0L
+        val bonusEarned = appearanceBonus + (userGoals * contract.bonusPerGoal) + (userAssists * contract.bonusPerAssist) + cleanSheetBonus
+        val wageEarned = 0L // Lương tuần được quyết toán định kỳ hàng tuần qua FinanceEngine
 
         val fatigueReduction = purchasedItems.filter { it.isPurchased }.sumOf { it.fatigueReductionBonus }
         val energyConsumed = if (userRole == MatchUserRole.STARTER) 28 else if (userRole == MatchUserRole.SUBSTITUTE) 15 else 5

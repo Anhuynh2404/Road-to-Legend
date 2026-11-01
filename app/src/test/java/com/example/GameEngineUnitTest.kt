@@ -1,23 +1,39 @@
 package com.example
 
 import com.example.roadtolegend.data.DefaultDatabase
+import com.example.roadtolegend.data.SquadDatabase
 import com.example.roadtolegend.engine.BalanceConfig
+import com.example.roadtolegend.engine.ContractNegotiationEngine
+import com.example.roadtolegend.engine.FinanceEngine
 import com.example.roadtolegend.engine.LeagueSimulator
 import com.example.roadtolegend.engine.MatchSimulator
+import com.example.roadtolegend.engine.NewsAndRumorEngine
 import com.example.roadtolegend.engine.TrainingEngine
+import com.example.roadtolegend.engine.TransferConfig
+import com.example.roadtolegend.engine.TransferMarketEngine
+import com.example.roadtolegend.model.Agent
+import com.example.roadtolegend.model.AgentTier
+import com.example.roadtolegend.model.CareerState
 import com.example.roadtolegend.model.Contract
 import com.example.roadtolegend.model.InteractiveChoiceType
+import com.example.roadtolegend.model.LoanRecord
 import com.example.roadtolegend.model.MatchEventType
+import com.example.roadtolegend.model.NegotiationStatus
 import com.example.roadtolegend.model.Player
 import com.example.roadtolegend.model.Position
 import com.example.roadtolegend.model.SeasonRecord
+import com.example.roadtolegend.model.SquadRole
 import com.example.roadtolegend.model.TrainingFocus
 import com.example.roadtolegend.model.TrainingIntensity
+import com.example.roadtolegend.model.TransactionType
+import com.example.roadtolegend.model.TransferOffer
+import com.example.roadtolegend.model.TransferOfferStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.UUID
 import kotlin.random.Random
 
 class GameEngineUnitTest {
@@ -355,4 +371,375 @@ class GameEngineUnitTest {
         )
         assertFalse("Cầu thủ người chơi không được xuất hiện ở CLB đối thủ", opponentSquad.any { it.isUser })
     }
+
+    // =========================================================
+    // GIAI ĐOẠN 2: TEST HỢP ĐỒNG, ĐÀM PHÁN, AGENT, CHUYỂN NHƯỢNG & 20+ MÙA GIẢI
+    // =========================================================
+
+    @Test
+    fun testContractSalaryAndBonuses() {
+        val player = Player(
+            id = "test_player",
+            name = "Test Striker",
+            age = 19,
+            primaryPosition = Position.ST,
+            pac = 65.0,
+            sho = 65.0,
+            pas = 60.0,
+            dri = 60.0,
+            sta = 70.0,
+            def = 40.0,
+            balance = 10_000L
+        )
+        val club = DefaultDatabase.createVLeague1Clubs().first()
+        val league = DefaultDatabase.initializeLeague(club.leagueId)
+        val contract = Contract(
+            clubId = club.id,
+            clubName = club.name,
+            weeklyWage = 2_000L,
+            signingBonus = 5_000L,
+            bonusPerAppearance = 100L,
+            bonusPerGoal = 200L,
+            bonusPerAssist = 100L,
+            bonusPerCleanSheet = 150L,
+            totalWeeksRemaining = 26
+        )
+        val state = CareerState(
+            seasonNumber = 1,
+            currentYear = 2026,
+            currentWeek = 1,
+            player = player,
+            currentClub = club,
+            currentLeague = league,
+            currentContract = contract,
+            nextOpponent = league.clubs.last()
+        )
+
+        // 1. Kiểm tra tính lương thực nhận sau thuế
+        val netWage = TransferConfig.calculateNetIncome(contract.weeklyWage)
+        assertTrue("Lương sau thuế phải nhỏ hơn hoặc bằng lương tổng", netWage <= contract.weeklyWage)
+        assertTrue("Lương sau thuế phải lớn hơn 0", netWage > 0)
+
+        // 2. Chạy quyết toán tài chính tuần
+        val initialBalance = player.balance
+        FinanceEngine.processWeeklyFinance(state)
+
+        // Sau 1 tuần: nhận netWage, thời hạn hợp đồng giảm 1 tuần
+        assertEquals(initialBalance + netWage, player.balance)
+        assertEquals(25, contract.totalWeeksRemaining)
+        assertTrue(state.financeTransactions.any { it.type == TransactionType.WAGE })
+        assertTrue(state.marketHistory.isNotEmpty())
+    }
+
+    @Test
+    fun testContractNegotiationFairVsExcessive() {
+        val player = Player(
+            id = "p1",
+            name = "Star Player",
+            age = 22,
+            primaryPosition = Position.ST,
+            pac = 75.0,
+            sho = 78.0,
+            pas = 70.0,
+            dri = 72.0,
+            sta = 75.0,
+            def = 40.0,
+            domesticReputation = 60
+        )
+        val club = DefaultDatabase.createVLeague1Clubs().first()
+        val contract = Contract(
+            clubId = club.id,
+            clubName = club.name,
+            weeklyWage = 2_000L,
+            contractYearsRemaining = 1,
+            totalWeeksRemaining = 26
+        )
+        val agent = Agent("agent_none", "Gia đình", AgentTier.NONE)
+
+        // Tạo phiên đàm phán gia hạn
+        val sessionFair = ContractNegotiationEngine.startNegotiation(
+            player = player,
+            club = club,
+            currentContract = contract,
+            linkedOffer = null,
+            agent = agent,
+            isRenewal = true
+        )
+        assertNotNull(sessionFair)
+        assertEquals(club.id, sessionFair.clubId)
+        assertTrue(sessionFair.hiddenClubPatience > 0)
+
+        // Đề xuất mức lương hợp lý (chỉ cao hơn 5% so với mức CLB đề xuất)
+        val clubOfferWage = sessionFair.clubOfferedWage
+        val fairWageDemand = (clubOfferWage * 1.05).toLong()
+        
+        ContractNegotiationEngine.submitPlayerCounterProposal(
+            session = sessionFair,
+            player = player,
+            club = club,
+            agent = agent,
+            demandedWage = fairWageDemand,
+            demandedSigningBonus = sessionFair.clubOfferedSigningBonus,
+            demandedYears = sessionFair.clubOfferedContractYears,
+            demandedRole = sessionFair.clubOfferedRole,
+            demandedReleaseClause = sessionFair.clubOfferedReleaseClause,
+            random = Random(123)
+        )
+
+        // Đàm phán hợp lý -> được chấp thuận hoặc tiếp tục đàm phán mà không bị walk out ngay
+        assertTrue(sessionFair.status == NegotiationStatus.AGREED || sessionFair.status == NegotiationStatus.IN_PROGRESS)
+        assertTrue("Không được hiển thị ký hiệu % trong tin phản hồi", !sessionFair.latestFeedbackMessageVi.contains("%"))
+
+        // Tạo phiên đàm phán với đòi hỏi quá đáng
+        val sessionGreedy = ContractNegotiationEngine.startNegotiation(
+            player = player,
+            club = club,
+            currentContract = contract,
+            linkedOffer = null,
+            agent = agent,
+            isRenewal = true
+        )
+        // Đòi hỏi gấp 50 lần ngân sách CLB liên tục
+        for (round in 1..6) {
+            if (sessionGreedy.status == NegotiationStatus.IN_PROGRESS) {
+                ContractNegotiationEngine.submitPlayerCounterProposal(
+                    session = sessionGreedy,
+                    player = player,
+                    club = club,
+                    agent = agent,
+                    demandedWage = clubOfferWage * 50,
+                    demandedSigningBonus = 10_000_000L,
+                    demandedYears = 5,
+                    demandedRole = SquadRole.STAR,
+                    demandedReleaseClause = null,
+                    random = Random(round.toLong())
+                )
+            }
+        }
+        // Phải bị chấm dứt đàm phán do kiên nhẫn cạn kiệt, không kéo dài vô hạn
+        assertTrue(sessionGreedy.status == NegotiationStatus.TERMINATED_WALKOUT || sessionGreedy.hiddenClubPatience <= 0)
+        assertTrue(sessionGreedy.history.size in 1..5)
+    }
+
+    @Test
+    fun testAgentSystemHiringAndRetainer() {
+        val player = Player(
+            id = "agent_test_p",
+            name = "Rising Star",
+            age = 20,
+            primaryPosition = Position.CAM,
+            pac = 70.0,
+            sho = 70.0,
+            pas = 75.0,
+            dri = 72.0,
+            sta = 70.0,
+            def = 50.0,
+            domesticReputation = 75,
+            balance = 20_000L
+        )
+        val club = DefaultDatabase.createVLeague1Clubs().first()
+        val league = DefaultDatabase.initializeLeague(club.leagueId)
+        val contract = Contract(
+            clubId = club.id,
+            clubName = club.name,
+            weeklyWage = 3_000L,
+            totalWeeksRemaining = 26
+        )
+        val state = CareerState(
+            seasonNumber = 1,
+            currentYear = 2026,
+            currentWeek = 1,
+            player = player,
+            currentClub = club,
+            currentLeague = league,
+            currentContract = contract,
+            nextOpponent = league.clubs.last()
+        )
+
+        // Tuyển đại diện ELITE
+        val eliteAgent = Agent(
+            id = "elite_agent_1",
+            name = "Gestifute Agency",
+            tier = AgentTier.ELITE
+        )
+        state.agent = eliteAgent
+
+        // Quyết toán tuần: phí duy trì Agent (tier.weeklyRetainer) phải được trừ
+        val preBalance = player.balance
+        FinanceEngine.processWeeklyFinance(state)
+
+        val netWage = TransferConfig.calculateNetIncome(contract.weeklyWage)
+        val expectedBalance = preBalance + netWage - eliteAgent.tier.weeklyRetainer
+        assertEquals(expectedBalance, player.balance)
+        assertTrue(state.financeTransactions.any { it.type == TransactionType.AGENT_RETAINER })
+    }
+
+    @Test
+    fun testTransferWindowAndLoansLifecycle() {
+        val clubA = DefaultDatabase.createVLeague1Clubs()[0]
+        val clubB = DefaultDatabase.createVLeague1Clubs()[1]
+        val player = Player(
+            id = "transfer_p",
+            name = "Winger Fast",
+            age = 21,
+            primaryPosition = Position.LW,
+            pac = 78.0,
+            sho = 70.0,
+            pas = 68.0,
+            dri = 75.0,
+            sta = 72.0,
+            def = 45.0,
+            balance = 10_000L
+        )
+        val contract = Contract(
+            clubId = clubA.id,
+            clubName = clubA.name,
+            weeklyWage = 2_500L,
+            totalWeeksRemaining = 26
+        )
+        val league = DefaultDatabase.initializeLeague(clubA.leagueId)
+        val state = CareerState(
+            seasonNumber = 1,
+            currentYear = 2026,
+            currentWeek = 1, // Tuần 1: Cửa sổ mở
+            player = player,
+            currentClub = clubA,
+            currentLeague = league,
+            currentContract = contract,
+            nextOpponent = clubB
+        )
+
+        // Kiểm tra cửa sổ chuyển nhượng
+        assertTrue(TransferConfig.isTransferWindowOpen(1))
+        assertFalse(TransferConfig.isTransferWindowOpen(8))
+        assertTrue(TransferConfig.isTransferWindowOpen(14)) // Mùa đông
+
+        // Đệ trình yêu cầu chuyển nhượng và yêu cầu cho mượn
+        val (transferSuccess, _) = TransferMarketEngine.submitTransferRequest(state)
+        assertTrue(transferSuccess)
+        assertTrue(state.isTransferListed)
+
+        val (loanReqSuccess, _) = TransferMarketEngine.submitLoanRequest(state)
+        assertTrue(loanReqSuccess)
+
+        // Thiết lập hợp đồng cho mượn sang clubB
+        val loanRecord = LoanRecord(
+            parentClubId = clubA.id,
+            parentClubName = clubA.name,
+            parentClubShortName = clubA.shortName,
+            loanClubId = clubB.id,
+            loanClubName = clubB.name,
+            loanClubShortName = clubB.shortName,
+            wageSharePercent = 80,
+            buyOptionFee = 300_000L,
+            canRecallInWinter = true,
+            weeksRemaining = 13
+        )
+        state.activeLoan = loanRecord
+        state.currentClub = clubB
+        state.currentContract.clubId = clubB.id
+        state.currentContract.clubName = clubB.name
+
+        // Đến tuần mùa đông (tuần 13) -> CLB mẹ gọi về
+        state.currentWeek = 13
+        val (recallSuccess, _) = TransferMarketEngine.recallLoanInWinter(state)
+        assertTrue(recallSuccess)
+        assertEquals(clubA.id, state.currentClub.id)
+        assertEquals(null, state.activeLoan)
+    }
+
+    @Test
+    fun testLongTermMultiSeasonSimulation20Seasons() {
+        val player = Player(
+            id = "legend_p",
+            name = "Nguyen Van Legend",
+            age = 18,
+            primaryPosition = Position.ST,
+            pac = 68.0,
+            sho = 70.0,
+            pas = 65.0,
+            dri = 67.0,
+            sta = 72.0,
+            def = 40.0,
+            balance = 5_000L
+        )
+        val startingClub = DefaultDatabase.createVLeague2Clubs().first()
+        val league = DefaultDatabase.initializeLeague(startingClub.leagueId)
+        val contract = Contract(
+            clubId = startingClub.id,
+            clubName = startingClub.name,
+            weeklyWage = 500L,
+            contractYearsRemaining = 3,
+            totalWeeksRemaining = 78
+        )
+        val state = CareerState(
+            seasonNumber = 1,
+            currentYear = 2026,
+            currentWeek = 1,
+            player = player,
+            currentClub = startingClub,
+            currentLeague = league,
+            currentContract = contract,
+            nextOpponent = league.clubs.last()
+        )
+
+        val rng = Random(2026)
+
+        // Chạy liên tục 20 mùa giải (520 tuần)
+        val targetSeasons = 20
+        for (season in 1..targetSeasons) {
+            // Chạy 26 tuần của mùa giải
+            for (w in 1..26) {
+                state.currentWeek = w
+                state.isTransferWindowOpen = TransferConfig.isTransferWindowOpen(w)
+                state.isDeadlineDay = TransferConfig.isDeadlineDay(w)
+
+                // 1. Tài chính hàng tuần
+                FinanceEngine.processWeeklyFinance(state)
+
+                // 2. Chuyển nhượng AI và sinh offer
+                if (state.isTransferWindowOpen) {
+                    TransferMarketEngine.simulateAITransferMarket(state, rng)
+                    TransferMarketEngine.evaluateAndGeneratePlayerOffers(state, rng)
+                }
+
+                // 3. Tin tức & tin đồn
+                NewsAndRumorEngine.rollTransferRumor(state, rng)
+
+                // Nếu hợp đồng sắp hết (còn dưới 6 tuần) hoặc là cầu thủ tự do -> ký gia hạn hoặc ký hợp đồng mới
+                if (state.currentContract.totalWeeksRemaining <= 6 || state.currentContract.isFreeAgent) {
+                    val candidateClubs = DefaultDatabase.createVLeague1Clubs() + DefaultDatabase.createVLeague2Clubs()
+                    val targetClub = candidateClubs[rng.nextInt(candidateClubs.size)]
+                    state.currentClub = targetClub
+                    state.currentContract.clubId = targetClub.id
+                    state.currentContract.clubName = targetClub.name
+                    state.currentContract.weeklyWage = (1_000L + state.player.ovr * 40L)
+                    state.currentContract.totalWeeksRemaining = 52
+                    state.currentContract.contractYearsRemaining = 2
+                }
+            }
+
+            // Kết thúc mùa giải
+            state.seasonNumber++
+            state.currentYear++
+            state.player.age++
+            state.currentWeek = 1
+        }
+
+        // Kiểm tra sau 20 mùa giải:
+        assertEquals(21, state.seasonNumber)
+        assertEquals(38, state.player.age)
+        assertTrue("Market value history must have accumulated points", state.marketHistory.size > 20)
+        assertTrue("Finance transactions must have accumulated", state.financeTransactions.isNotEmpty())
+        assertTrue("Player balance must not crash or be negative overflow", state.player.balance >= 0)
+
+        // Kiểm tra tất cả các CLB trong giải vẫn có ngân sách hợp lệ và đội hình đầy đủ
+        val allClubs = DefaultDatabase.createVLeague1Clubs() + DefaultDatabase.createVLeague2Clubs()
+        for (club in allClubs) {
+            val squad = SquadDatabase.getSquadForClub(club.id)
+            assertTrue("CLB ${club.name} phải có đủ tối thiểu 11 cầu thủ sau 20 mùa", squad.size >= 11)
+            assertTrue("CLB ${club.name} phải có thủ môn", squad.any { it.positionCategory == com.example.roadtolegend.model.PositionCategory.GOALKEEPER })
+        }
+    }
 }
+
