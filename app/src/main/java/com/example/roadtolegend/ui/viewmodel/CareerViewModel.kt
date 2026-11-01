@@ -56,15 +56,17 @@ enum class AppScreen {
 
 enum class MainTab {
     DASHBOARD,
+    MATCHDAY,
+    TRAINING,
+    LEAGUE_TABLE,
+    MORE,
+    CAREER_STATS,
     CONTRACT,
     TRANSFER,
     AGENT,
-    MATCHDAY,
-    TRAINING,
-    NEWS,
     FINANCE,
     SHOP,
-    LEAGUE_TABLE,
+    NEWS,
     PROFILE_SAVE
 }
 
@@ -183,6 +185,15 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
         _statusNotification.value = null
     }
 
+    fun updatePlayerAvatar(avatarPath: String?) {
+        val state = _careerState.value ?: return
+        state.player.customAvatarPath = avatarPath
+        val updatedPlayer = state.player.copy(customAvatarPath = avatarPath)
+        _careerState.value = state.copy(player = updatedPlayer)
+        SaveGameManager.saveGame(context, 0, state)
+        showToast("Đã lưu ảnh đại diện thành công!")
+    }
+
     private fun prepareRoundFixtures(state: CareerState) {
         _roundFixtures.value = LeagueSimulator.generateRoundFixtures(
             league = state.currentLeague,
@@ -209,7 +220,8 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
         dri: Double,
         sta: Double,
         def: Double,
-        startingClub: Club
+        startingClub: Club,
+        customAvatarPath: String? = null
     ) {
         val hiddenPot = (80.0 + random.nextDouble() * 14.0)
 
@@ -229,7 +241,8 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
             sta = sta,
             def = def,
             hiddenPotential = hiddenPot,
-            balance = 1_500
+            balance = 1_500,
+            customAvatarPath = customAvatarPath
         )
 
         // Cột mốc khởi đầu
@@ -617,10 +630,11 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun startOfferNegotiation(offer: TransferOffer) {
         val state = _careerState.value ?: return
-        val allClubs = DefaultDatabase.createVLeague1Clubs() +
-                DefaultDatabase.createVLeague2Clubs() +
-                DefaultDatabase.createChampionshipClubs() +
-                DefaultDatabase.createPremierLeagueClubs()
+        if (!offer.isWorkPermitApproved) {
+            showToast("Thương vụ bị chặn: ${offer.workPermitNote ?: "Chưa có giấy phép lao động."}")
+            return
+        }
+        val allClubs = DefaultDatabase.getAllClubs()
         val buyer = allClubs.find { it.id == offer.buyingClubId }
         if (buyer == null) {
             showToast("Không tìm thấy thông tin CLB đưa ra đề nghị.")
@@ -648,10 +662,7 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         val session = _activeNegotiation.value ?: return
         val state = _careerState.value ?: return
-        val allClubs = DefaultDatabase.createVLeague1Clubs() +
-                DefaultDatabase.createVLeague2Clubs() +
-                DefaultDatabase.createChampionshipClubs() +
-                DefaultDatabase.createPremierLeagueClubs()
+        val allClubs = DefaultDatabase.getAllClubs()
         val club = allClubs.find { it.id == session.clubId } ?: state.currentClub
 
         val updatedSession = ContractNegotiationEngine.submitPlayerCounterProposal(
@@ -692,10 +703,18 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
             state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, renewNews, "Mức đãi ngộ mới thể hiện rõ tầm quan trọng của cầu thủ trong kế hoạch CLB.", "CONTRACT", "Chính Thức CLB", 1, false, state.currentClub.id))
             showToast("Đã hoàn tất gia hạn hợp đồng thành công!")
         } else {
+            if (!state.isTransferWindowOpen && !state.currentContract.isFreeAgent) {
+                showToast("Cửa sổ chuyển nhượng đã đóng, không thể hoàn tất chuyển nhượng.")
+                return
+            }
             val linkedOffer = state.incomingOffers.find { it.id == session.linkedOfferId }
             if (linkedOffer != null) {
-                TransferMarketEngine.executePlayerTransfer(state, linkedOffer, finalContract)
-                showToast("Chúc mừng bạn đã chính thức chuyển sang khoác áo ${finalContract.clubName}!")
+                val success = TransferMarketEngine.executePlayerTransfer(state, linkedOffer, finalContract)
+                if (success) {
+                    showToast("Chúc mừng bạn đã chính thức chuyển sang khoác áo ${finalContract.clubName}!")
+                } else {
+                    showToast("Không thể hoàn tất chuyển nhượng.")
+                }
             }
         }
 
@@ -713,6 +732,15 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
     // ---------------------------------------------------------
     fun acceptTransferOfferDirectly(offer: TransferOffer) {
         val state = _careerState.value ?: return
+        if (!state.isTransferWindowOpen && !state.currentContract.isFreeAgent) {
+            showToast("Cửa sổ chuyển nhượng hiện đang đóng.")
+            return
+        }
+        if (!offer.isWorkPermitApproved) {
+            showToast("Thương vụ bị chặn: ${offer.workPermitNote ?: "Chưa có giấy phép lao động."}")
+            return
+        }
+
         val contract = Contract(
             clubId = offer.buyingClubId,
             clubName = offer.buyingClubName,
@@ -736,6 +764,8 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
             showToast("Gia nhập thành công ${offer.buyingClubName}!")
             _careerState.value = state.copy()
             SaveGameManager.saveGame(context, 0, state)
+        } else {
+            showToast("Không thể hoàn tất chuyển nhượng.")
         }
     }
 
@@ -748,9 +778,33 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun acceptLoanOffer(offer: TransferOffer) {
         val state = _careerState.value ?: return
+        if (!state.isTransferWindowOpen && !state.currentContract.isFreeAgent) {
+            showToast("Cửa sổ chuyển nhượng hiện đang đóng.")
+            return
+        }
+        if (!offer.isWorkPermitApproved) {
+            showToast("Thương vụ mượn bị chặn: ${offer.workPermitNote ?: "Chưa có giấy phép lao động."}")
+            return
+        }
         val success = TransferMarketEngine.executePlayerLoan(state, offer)
         if (success) {
             showToast("Bắt đầu thời gian thi đấu cho mượn tại ${offer.buyingClubShortName}!")
+            _careerState.value = state.copy()
+            SaveGameManager.saveGame(context, 0, state)
+        } else {
+            showToast("Không thể hoàn tất hợp đồng cho mượn.")
+        }
+    }
+
+    fun scoutForeignMarket(regionKey: String) {
+        val state = _careerState.value ?: return
+        val (success, message) = com.example.roadtolegend.engine.InternationalTransferRules.scoutForeignMarket(
+            state = state,
+            regionName = regionKey,
+            random = random
+        )
+        showToast(message)
+        if (success) {
             _careerState.value = state.copy()
             SaveGameManager.saveGame(context, 0, state)
         }

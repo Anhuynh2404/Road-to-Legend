@@ -189,11 +189,96 @@ object DefaultDatabase {
         Club("en_man_utd", "Manchester United", "Man Utd", "Anh", "premier_league", 1, 86, 55_000_000, 5, 4, 81, "#D50000", "#FFD600", listOf("Bruno Fernandes", "Marcus Rashford", "Alejandro Garnacho"), "Quỷ Đỏ", "Man Utd")
     )
 
+    // =========================================================================
+    // CƠ SỞ DỮ LIỆU CÁC GIẢI ĐẤU QUỐC TẾ (CHÂU Á & CHÂU ÂU)
+    // HƯỚNG DẪN THÊM CLB HOẶC GIẢI MỚI THỦ CÔNG:
+    // 1. Tạo hàm `create<TênGiải>Clubs(): List<Club>` tương tự bên dưới.
+    // 2. Thêm leagueId vào hàm `initializeLeague(leagueId)` và `getAllClubs()`.
+    // 3. Mỗi Club cần khai báo: id, tên đầy đủ, tên viết tắt, quốc gia, leagueId,
+    //    hạng đấu (tier), điểm uy tín (reputation 1-100), ngân sách chuyển nhượng (€),
+    //    chất lượng sân tập (1-5), chất lượng HLV (1-5), OVR trung bình và cầu thủ ngôi sao.
+    // =========================================================================
+
+    // THÁI LAN - THAI LEAGUE 1 (Đông Nam Á)
+    fun createThaiLeagueClubs(): List<Club> = listOf(
+        Club("th_buriram", "Buriram United", "Buriram Utd", "Thái Lan", "thai_league", 1, 64, 2_800_000, 4, 4, 68, "#1A237E", "#FFFFFF", listOf("Supachai Chaided", "Theerathon Bunmathan", "Guilherme Bissoli"), "Lâu Đài Sét", "Buriram"),
+        Club("th_bangkok", "True Bangkok United", "Bangkok Utd", "Thái Lan", "thai_league", 1, 62, 2_200_000, 3, 3, 66, "#D32F2F", "#000000", listOf("Mahmoud Eid", "Everton Goncalves", "Thitiphan Puangchan"), "Thiên Thần Đỏ", "Bangkok Utd"),
+        Club("th_bg_pathum", "BG Pathum United", "BG Pathum", "Thái Lan", "thai_league", 1, 61, 2_000_000, 4, 4, 66, "#1565C0", "#FFEB3B", listOf("Chanathip Songkrasin", "Teerasil Dangda", "Sarach Yooyen"), "Thỏ Lam", "BG Pathum"),
+        Club("th_port", "Port FC", "Port FC", "Thái Lan", "thai_league", 1, 59, 1_600_000, 3, 3, 64, "#E65100", "#1A237E", listOf("Bordin Phala", "Barros Tardeli", "Peeradol Chamratsamee"), "Cảng Khổng Lồ", "Port FC"),
+        Club("th_muangthong", "Muangthong United", "Muangthong", "Thái Lan", "thai_league", 1, 58, 1_500_000, 3, 3, 63, "#C62828", "#212121", listOf("Poramet Arjvirai", "Tristan Do", "Picha Autra"), "Kirin Đỏ", "Muangthong")
+    )
+
+    // HÀN QUỐC - K LEAGUE 1 (Đông Á đỉnh cao)
+    fun createKLeagueClubs(): List<Club> = listOf(
+        Club("kr_ulsan", "Ulsan HD FC", "Ulsan HD", "Hàn Quốc", "k_league", 1, 74, 9_500_000, 4, 4, 73, "#0D47A1", "#FFD600", listOf("Joo Min-kyu", "Gustav Ludwigson", "Kim Young-gwon"), "Hổ Xanh Donghae", "Ulsan"),
+        Club("kr_jeonbuk", "Jeonbuk Hyundai Motors", "Jeonbuk", "Hàn Quốc", "k_league", 1, 73, 8_800_000, 4, 4, 72, "#2E7D32", "#FFFFFF", listOf("Song Min-kyu", "Tiago Orobo", "Kim Jin-su"), "Chiến Binh Xanh Lục", "Jeonbuk"),
+        Club("kr_seoul", "FC Seoul", "FC Seoul", "Hàn Quốc", "k_league", 1, 72, 7_500_000, 4, 4, 71, "#B71C1C", "#212121", listOf("Jesse Lingard", "Stanislav Iljutcenko", "Ki Sung-yueng"), "Thủ Đô Đỏ Đen", "FC Seoul"),
+        Club("kr_pohang", "Pohang Steelers", "Pohang", "Hàn Quốc", "k_league", 1, 71, 6_800_000, 4, 4, 70, "#D32F2F", "#000000", listOf("Jorge Teixeira", "Wanderson", "Oberdan"), "Thép Đỏ Pohang", "Pohang"),
+        Club("kr_suwon", "Suwon FC", "Suwon FC", "Hàn Quốc", "k_league", 1, 67, 4_500_000, 3, 3, 67, "#1976D2", "#C62828", listOf("Anderson Oliveira", "Ji Dong-won", "Lachlan Jackson"), "Thành Cổ Suwon", "Suwon FC")
+    )
+
+    // BỒ ĐÀO NHA - LIGA PORTUGAL (Cửa ngõ Châu Âu)
+    fun createPrimeiraLigaClubs(): List<Club> = listOf(
+        Club("pt_benfica", "SL Benfica", "Benfica", "Bồ Đào Nha", "primeira_liga", 1, 84, 38_000_000, 5, 5, 80, "#D50000", "#FFFFFF", listOf("Angel Di Maria", "Orkun Kokcu", "Vangelis Pavlidis", "Nicolas Otamendi"), "Đại Bàng Đỏ", "Benfica"),
+        Club("pt_sporting", "Sporting CP", "Sporting CP", "Bồ Đào Nha", "primeira_liga", 1, 83, 35_000_000, 5, 5, 80, "#2E7D32", "#FFFFFF", listOf("Viktor Gyokeres", "Pedro Goncalves", "Morten Hjulmand"), "Sư Tử Xanh", "Sporting"),
+        Club("pt_porto", "FC Porto", "FC Porto", "Bồ Đào Nha", "primeira_liga", 1, 82, 32_000_000, 5, 5, 79, "#1565C0", "#FFFFFF", listOf("Galeno", "Alan Varela", "Diogo Costa", "Samu Omorodion"), "Rồng Xanh", "Porto"),
+        Club("pt_braga", "SC Braga", "Braga", "Bồ Đào Nha", "primeira_liga", 1, 77, 16_000_000, 4, 4, 75, "#C62828", "#FFFFFF", listOf("Ricardo Horta", "Bruma", "Joao Moutinho"), "Chiến Binh Minho", "Braga")
+    )
+
+    // ĐỨC - BUNDESLIGA
+    fun createBundesligaClubs(): List<Club> = listOf(
+        Club("de_bayern", "FC Bayern München", "Bayern", "Đức", "bundesliga", 1, 93, 95_000_000, 5, 5, 86, "#D50000", "#FFFFFF", listOf("Harry Kane", "Jamal Musiala", "Leroy Sane", "Joshua Kimmich"), "Hùm Xám Xứ Bavaria", "Bayern"),
+        Club("de_leverkusen", "Bayer 04 Leverkusen", "Leverkusen", "Đức", "bundesliga", 1, 89, 70_000_000, 5, 5, 83, "#B71C1C", "#212121", listOf("Florian Wirtz", "Granit Xhaka", "Victor Boniface", "Jeremie Frimpong"), "Binh Đoàn Dược Phẩm", "Leverkusen"),
+        Club("de_dortmund", "Borussia Dortmund", "Dortmund", "Đức", "bundesliga", 1, 88, 65_000_000, 5, 5, 82, "#FDD835", "#212121", listOf("Julian Brandt", "Serhou Guirassy", "Karim Adeyemi", "Nico Schlotterbeck"), "Vàng Đen Vùng Ruhr", "Dortmund"),
+        Club("de_leipzig", "RB Leipzig", "RB Leipzig", "Đức", "bundesliga", 1, 85, 55_000_000, 5, 4, 81, "#FFFFFF", "#D32F2F", listOf("Xavi Simons", "Benjamin Sesko", "Lois Openda", "Willi Orban"), "Đàn Bò Đỏ", "RB Leipzig")
+    )
+
+    // Ý - SERIE A
+    fun createSerieAClubs(): List<Club> = listOf(
+        Club("it_inter", "Inter Milan", "Inter", "Ý", "serie_a", 1, 90, 70_000_000, 5, 5, 84, "#1565C0", "#212121", listOf("Lautaro Martinez", "Marcus Thuram", "Nicolo Barella", "Hakan Calhanoglu"), "Sọc Xanh Đen", "Inter"),
+        Club("it_juventus", "Juventus FC", "Juventus", "Ý", "serie_a", 1, 88, 62_000_000, 5, 4, 82, "#212121", "#FFFFFF", listOf("Dusan Vlahovic", "Kenan Yildiz", "Teun Koopmeiners", "Bremer"), "Bà Đầm Già", "Juventus"),
+        Club("it_milan", "AC Milan", "AC Milan", "Ý", "serie_a", 1, 87, 58_000_000, 5, 4, 82, "#C62828", "#212121", listOf("Rafael Leao", "Christian Pulisic", "Theo Hernandez", "Tijjani Reijnders"), "Ác Quỷ Đỏ Đen", "AC Milan"),
+        Club("it_atalanta", "Atalanta BC", "Atalanta", "Ý", "serie_a", 1, 83, 38_000_000, 4, 5, 80, "#1976D2", "#212121", listOf("Ademola Lookman", "Mateo Retegui", "Charles De Ketelaere", "Ederson"), "Nữ Thần Bergamo", "Atalanta")
+    )
+
+    // PHÁP - LIGUE 1
+    fun createLigue1Clubs(): List<Club> = listOf(
+        Club("fr_psg", "Paris Saint-Germain", "PSG", "Pháp", "ligue_1", 1, 92, 105_000_000, 5, 5, 85, "#1A237E", "#C62828", listOf("Ousmane Dembele", "Bradley Barcola", "Vitinha", "Achraf Hakimi"), "Kinh Đô Ánh Sáng", "PSG"),
+        Club("fr_monaco", "AS Monaco", "Monaco", "Pháp", "ligue_1", 1, 84, 42_000_000, 4, 4, 80, "#D32F2F", "#FFFFFF", listOf("Denis Zakaria", "Maghnes Akliouche", "Folarin Balogun", "Aleksandr Golovin"), "Công Quốc Đỏ Trắng", "Monaco"),
+        Club("fr_marseille", "Olympique de Marseille", "Marseille", "Pháp", "ligue_1", 1, 83, 38_000_000, 4, 4, 79, "#03A9F4", "#FFFFFF", listOf("Mason Greenwood", "Elye Wahi", "Pierre-Emile Hojbjerg"), "Thành Cảng Miền Nam", "Marseille"),
+        Club("fr_lille", "LOSC Lille", "Lille", "Pháp", "ligue_1", 1, 81, 30_000_000, 4, 4, 78, "#C62828", "#1A237E", listOf("Jonathan David", "Edon Zhegrova", "Angel Gomes", "Benjamin Andre"), "Chó Săn Phương Bắc", "Lille")
+    )
+
+    /**
+     * Tập hợp toàn bộ danh sách CLB trong toàn bộ thế giới trò chơi.
+     * Dùng cho tìm kiếm, thị trường chuyển nhượng và quan hệ đối tác.
+     */
+    fun getAllClubs(): List<Club> =
+        createVLeague2Clubs() +
+        createVLeague1Clubs() +
+        createThaiLeagueClubs() +
+        createKLeagueClubs() +
+        createPrimeiraLigaClubs() +
+        createChampionshipClubs() +
+        createLigue1Clubs() +
+        createSerieAClubs() +
+        createBundesligaClubs() +
+        createPremierLeagueClubs()
+
+    fun getClubById(clubId: String): Club? =
+        getAllClubs().find { it.id == clubId }
+
     fun initializeLeague(leagueId: String): League {
         val (name, country, tier, clubs) = when (leagueId) {
             "vleague_2" -> Quadruple("V-League 2 (Hạng Nhất)", "Việt Nam", 2, createVLeague2Clubs())
             "vleague_1" -> Quadruple("V-League 1", "Việt Nam", 1, createVLeague1Clubs())
+            "thai_league" -> Quadruple("Thai League 1", "Thái Lan", 1, createThaiLeagueClubs())
+            "k_league" -> Quadruple("K League 1", "Hàn Quốc", 1, createKLeagueClubs())
+            "primeira_liga" -> Quadruple("Liga Portugal", "Bồ Đào Nha", 1, createPrimeiraLigaClubs())
             "championship" -> Quadruple("EFL Championship", "Anh", 2, createChampionshipClubs())
+            "ligue_1" -> Quadruple("Ligue 1", "Pháp", 1, createLigue1Clubs())
+            "serie_a" -> Quadruple("Serie A", "Ý", 1, createSerieAClubs())
+            "bundesliga" -> Quadruple("Bundesliga", "Đức", 1, createBundesligaClubs())
             "premier_league" -> Quadruple("English Premier League", "Anh", 1, createPremierLeagueClubs())
             "national_cup" -> Quadruple("Cúp Quốc Gia Việt Nam", "Việt Nam", 1, createVLeague2Clubs() + createVLeague1Clubs())
             else -> Quadruple("V-League 2 (Hạng Nhất)", "Việt Nam", 2, createVLeague2Clubs())
@@ -226,6 +311,20 @@ object DefaultDatabase {
             topAssists = initialTopAssists
         )
     }
+
+    fun getAllLeagues(): List<League> = listOf(
+        initializeLeague("vleague_2"),
+        initializeLeague("vleague_1"),
+        initializeLeague("thai_league"),
+        initializeLeague("k_league"),
+        initializeLeague("primeira_liga"),
+        initializeLeague("championship"),
+        initializeLeague("ligue_1"),
+        initializeLeague("serie_a"),
+        initializeLeague("bundesliga"),
+        initializeLeague("premier_league"),
+        initializeLeague("national_cup")
+    )
 
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 

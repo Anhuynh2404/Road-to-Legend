@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,6 +80,8 @@ fun CharacterCreationScreen(
     var heightCm by remember { mutableIntStateOf(178) }
     var selectedFoot by remember { mutableStateOf(Foot.RIGHT) }
     var selectedPosition by remember { mutableStateOf(Position.ST) }
+    var customAvatarPath by remember { mutableStateOf<String?>(null) }
+    var showAvatarDialog by remember { mutableStateOf(false) }
 
     // 6 chỉ số khởi tạo (Mỗi chỉ số 25 - 55, Tổng = 300)
     var pac by remember { mutableDoubleStateOf(52.0) }
@@ -107,6 +110,15 @@ fun CharacterCreationScreen(
     val totalAllocated = (pac + sho + pas + dri + sta + def).toInt()
     val pointsRemaining = 300 - totalAllocated
     val estimatedOvr = selectedPosition.calculateOvr(pac, sho, pas, dri, sta, def)
+
+    if (showAvatarDialog) {
+        com.example.roadtolegend.ui.components.AvatarSelectionDialog(
+            playerId = "created_player",
+            currentAvatarPath = customAvatarPath,
+            onAvatarSelected = { customAvatarPath = it },
+            onDismiss = { showAvatarDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = modifier
@@ -143,7 +155,92 @@ fun CharacterCreationScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("1. HỒ SƠ CÁ NHÂN", fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Khu vực chọn Ảnh đại diện / Avatar
+                    val customBitmap = remember(customAvatarPath) { com.example.roadtolegend.data.AvatarManager.loadBitmapFromFile(customAvatarPath) }
+                    val preset = remember(customAvatarPath) { com.example.roadtolegend.data.AvatarManager.getPresetById(customAvatarPath) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DarkSurfaceVariant, RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .clickable { showAvatarDialog = true }
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(GoldDark.copy(alpha = 0.5f), DarkBg)
+                                    )
+                                )
+                                .border(2.dp, GoldPrimary, androidx.compose.foundation.shape.CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when {
+                                customBitmap != null -> {
+                                    androidx.compose.foundation.Image(
+                                        bitmap = customBitmap.asImageBitmap(),
+                                        contentDescription = "Avatar",
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                preset != null -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(preset.themeColor, preset.accentColor)
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = preset.icon,
+                                            contentDescription = preset.name,
+                                            tint = androidx.compose.ui.graphics.Color.White,
+                                            modifier = Modifier.size(34.dp)
+                                        )
+                                    }
+                                }
+                                else -> {
+                                    Text("★", fontSize = 28.sp, fontWeight = FontWeight.Black, color = GoldPrimary)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ảnh đại diện cầu thủ",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = if (customAvatarPath != null) "Đã chọn avatar riêng" else "Đang dùng avatar mặc định",
+                                fontSize = 10.sp,
+                                color = if (customAvatarPath != null) PitchGreen else TextMuted
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedButton(
+                                onClick = { showAvatarDialog = true },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Text("Đổi ảnh / Avatar", fontSize = 10.sp, color = GoldPrimary)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedTextField(
                         value = playerName,
@@ -432,7 +529,8 @@ fun CharacterCreationScreen(
                         dri = dri,
                         sta = sta,
                         def = def,
-                        startingClub = selectedClub
+                        startingClub = selectedClub,
+                        customAvatarPath = customAvatarPath
                     )
                 },
                 modifier = Modifier

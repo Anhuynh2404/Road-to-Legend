@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -50,8 +51,54 @@ fun PlayerAvatar(
         val resourceName = player.avatarResName.lowercase().replace("-", "_")
         context.resources.getIdentifier(resourceName, "drawable", context.packageName)
     }
+    val customBitmap = remember(player.customAvatarPath) { com.example.roadtolegend.data.AvatarManager.loadBitmapFromFile(player.customAvatarPath) }
+    val preset = remember(player.customAvatarPath) { com.example.roadtolegend.data.AvatarManager.getPresetById(player.customAvatarPath) }
 
-    if (resId != 0) {
+    if (customBitmap != null) {
+        // Ảnh do người chơi chụp từ Camera hoặc chọn từ Thư viện
+        Box(
+            modifier = modifier
+                .size(size)
+                .clip(RoundedCornerShape(size * 0.22f))
+                .border(
+                    width = if (player.isUser) 2.dp else 1.dp,
+                    color = if (player.isUser) GoldPrimary else DarkCardBorder,
+                    shape = RoundedCornerShape(size * 0.22f)
+                )
+        ) {
+            Image(
+                bitmap = customBitmap.asImageBitmap(),
+                contentDescription = player.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    } else if (preset != null) {
+        // Bộ avatar phong cách tuyển chọn
+        Box(
+            modifier = modifier
+                .size(size)
+                .clip(RoundedCornerShape(size * 0.22f))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(preset.themeColor, preset.accentColor)
+                    )
+                )
+                .border(
+                    width = if (player.isUser) 2.dp else 1.dp,
+                    color = if (player.isUser) GoldPrimary else DarkCardBorder,
+                    shape = RoundedCornerShape(size * 0.22f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = preset.icon,
+                contentDescription = preset.name,
+                tint = Color.White,
+                modifier = Modifier.size(size * 0.6f)
+            )
+        }
+    } else if (resId != 0) {
         // Ảnh thật người dùng thêm vào res/drawable/
         Box(
             modifier = modifier

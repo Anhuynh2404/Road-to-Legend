@@ -84,11 +84,9 @@ fun LeagueTableScreen(
     val currencyFormatter = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val isFictional = careerState.isFictionalMode
 
-    val leaguesList = remember {
-        listOf(
-            careerState.currentLeague,
-            DefaultDatabase.initializeLeague("national_cup")
-        )
+    val leaguesList = remember(careerState.currentLeague.id) {
+        val allOther = DefaultDatabase.getAllLeagues().filter { it.id != careerState.currentLeague.id }
+        listOf(careerState.currentLeague) + allOther
     }
     val activeLeague = leaguesList.getOrElse(selectedLeagueIndex) { careerState.currentLeague }
     val sortedStandings = activeLeague.sortedStandings()
@@ -188,24 +186,25 @@ fun LeagueTableScreen(
                 }
             }
 
-            // Thanh chọn giải đấu (V-League 2 / Cúp Quốc Gia)
+            // Thanh chọn giải đấu (V-League 1 / V-League 2 / Cúp Quốc Gia...)
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     leaguesList.forEachIndexed { idx, league ->
                         val isSelected = selectedLeagueIndex == idx
                         Surface(
                             modifier = Modifier
-                                .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     selectedLeagueIndex = idx
                                     selectedClubId = league.clubs.firstOrNull()?.id ?: careerState.currentClub.id
                                 }
                                 .border(
-                                    width = if (isSelected) 1.dp else 0.dp,
+                                    width = if (isSelected) 1.5.dp else 0.dp,
                                     color = if (isSelected) GoldPrimary else DarkCardBorder,
                                     shape = RoundedCornerShape(8.dp)
                                 ),
@@ -214,7 +213,7 @@ fun LeagueTableScreen(
                             Text(
                                 text = league.name,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
                                 color = if (isSelected) GoldPrimary else TextSecondary
@@ -626,9 +625,10 @@ fun LeagueTableScreen(
                                         Spacer(modifier = Modifier.width(6.dp))
 
                                         Text(
-                                            text = "#${player.number} • ${player.age}t • ${player.nationalityCode}",
+                                            text = "#${player.number} • ${player.age}t • ${player.matchesPlayed} trận (${player.goals} bàn, ${player.assists} kiến tạo)",
                                             fontSize = 10.sp,
-                                            color = TextMuted
+                                            fontWeight = if (player.isUser) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (player.isUser) GoldPrimary else TextSecondary
                                         )
                                     }
 
@@ -694,6 +694,12 @@ fun LeagueTableScreen(
             // TAB 2: THỐNG KÊ GIẢI ĐẤU
             // ==========================================
             if (selectedMainTab == 2) {
+                val userScorerIndex = allScorers.indexOfFirst { it.playerName == careerState.player.name || it.isUser }
+                val isUserInTopScorers = userScorerIndex in 0 until 8
+
+                val userAssistIndex = allAssists.indexOfFirst { it.playerName == careerState.player.name || it.isUser }
+                val isUserInTopAssists = userAssistIndex in 0 until 8
+
                 item {
                     Text("VUA PHÁ LƯỚI (TOP GHI BÀN)", fontSize = 13.sp, fontWeight = FontWeight.Black, color = GoldPrimary)
                 }
@@ -735,7 +741,11 @@ fun LeagueTableScreen(
                                         fontWeight = if (isUser) FontWeight.Black else FontWeight.Bold,
                                         color = if (isUser) GoldPrimary else TextPrimary
                                     )
-                                    Text(club.getDisplayShortName(isFictional), fontSize = 10.sp, color = TextMuted)
+                                    Text(
+                                        text = "${club.getDisplayShortName(isFictional)} • ${leader.matchesPlayed} trận",
+                                        fontSize = 10.sp,
+                                        color = TextMuted
+                                    )
                                 }
                             }
 
@@ -745,6 +755,58 @@ fun LeagueTableScreen(
                                 fontWeight = FontWeight.Black,
                                 color = if (isUser) GoldPrimary else TextPrimary
                             )
+                        }
+                    }
+                }
+
+                // Nếu người chơi không nằm trong top 8, luôn hiển thị vị trí của người chơi
+                if (!isUserInTopScorers && userScorerIndex >= 0) {
+                    val userScorer = allScorers[userScorerIndex]
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(1.5.dp, GoldPrimary, RoundedCornerShape(8.dp)),
+                            color = DarkSurfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "#${userScorerIndex + 1}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = GoldPrimary,
+                                        modifier = Modifier.width(32.dp)
+                                    )
+                                    ClubBadge(club = careerState.currentClub, size = 24.dp, isFictionalMode = isFictional)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = "${careerState.player.name} (Vị trí của bạn)",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = GoldPrimary
+                                        )
+                                        Text(
+                                            text = "${careerState.currentClub.getDisplayShortName(isFictional)} • ${userScorer.matchesPlayed} trận",
+                                            fontSize = 10.sp,
+                                            color = TextMuted
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "${userScorer.count} bàn",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = GoldPrimary
+                                )
+                            }
                         }
                     }
                 }
@@ -791,7 +853,11 @@ fun LeagueTableScreen(
                                         fontWeight = if (isUser) FontWeight.Black else FontWeight.Bold,
                                         color = if (isUser) PitchGreen else TextPrimary
                                     )
-                                    Text(club.getDisplayShortName(isFictional), fontSize = 10.sp, color = TextMuted)
+                                    Text(
+                                        text = "${club.getDisplayShortName(isFictional)} • ${leader.matchesPlayed} trận",
+                                        fontSize = 10.sp,
+                                        color = TextMuted
+                                    )
                                 }
                             }
 
@@ -801,6 +867,58 @@ fun LeagueTableScreen(
                                 fontWeight = FontWeight.Black,
                                 color = if (isUser) PitchGreen else TextPrimary
                             )
+                        }
+                    }
+                }
+
+                // Nếu người chơi không nằm trong top 8 kiến tạo, luôn hiển thị vị trí của người chơi
+                if (!isUserInTopAssists && userAssistIndex >= 0) {
+                    val userAssist = allAssists[userAssistIndex]
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(1.5.dp, PitchGreen, RoundedCornerShape(8.dp)),
+                            color = DarkSurfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "#${userAssistIndex + 1}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = PitchGreen,
+                                        modifier = Modifier.width(32.dp)
+                                    )
+                                    ClubBadge(club = careerState.currentClub, size = 24.dp, isFictionalMode = isFictional)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = "${careerState.player.name} (Vị trí của bạn)",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = PitchGreen
+                                        )
+                                        Text(
+                                            text = "${careerState.currentClub.getDisplayShortName(isFictional)} • ${userAssist.matchesPlayed} trận",
+                                            fontSize = 10.sp,
+                                            color = TextMuted
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "${userAssist.count} kiến tạo",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = PitchGreen
+                                )
+                            }
                         }
                     }
                 }

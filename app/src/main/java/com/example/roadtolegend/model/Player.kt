@@ -72,7 +72,8 @@ data class Player(
     // Cột mốc sự nghiệp (Milestones)
     val milestones: MutableList<CareerMilestone> = mutableListOf(),
 
-    var peakMarketValue: Long = 0L
+    var peakMarketValue: Long = 0L,
+    var customAvatarPath: String? = null
 ) {
     val ovr: Int
         get() = primaryPosition.calculateOvr(pac, sho, pas, dri, sta, def)

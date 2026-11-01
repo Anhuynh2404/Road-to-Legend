@@ -2,9 +2,11 @@ package com.example
 
 import com.example.roadtolegend.data.DefaultDatabase
 import com.example.roadtolegend.data.SquadDatabase
+import com.example.roadtolegend.data.SaveGameManager
 import com.example.roadtolegend.engine.BalanceConfig
 import com.example.roadtolegend.engine.ContractNegotiationEngine
 import com.example.roadtolegend.engine.FinanceEngine
+import com.example.roadtolegend.engine.InternationalTransferRules
 import com.example.roadtolegend.engine.LeagueSimulator
 import com.example.roadtolegend.engine.MatchSimulator
 import com.example.roadtolegend.engine.NewsAndRumorEngine
@@ -741,5 +743,366 @@ class GameEngineUnitTest {
             assertTrue("CLB ${club.name} phải có thủ môn", squad.any { it.positionCategory == com.example.roadtolegend.model.PositionCategory.GOALKEEPER })
         }
     }
+
+    // TEST NHÓM C: Cấu hình 6 Preset Avatar & Avatar Manager
+    @Test
+    fun testAvatarPresetsConfiguration() {
+        val presets = com.example.roadtolegend.data.AvatarManager.presetAvatars
+        assertEquals("Phải có đúng 6 mẫu avatar cài sẵn (preset)", 6, presets.size)
+
+        // Kiểm tra tính duy nhất của ID
+        val uniqueIds = presets.map { it.id }.toSet()
+        assertEquals("Tất cả ID preset phải là duy nhất", presets.size, uniqueIds.size)
+
+        // Kiểm tra tìm kiếm preset theo ID
+        for (preset in presets) {
+            assertNotNull(preset.name)
+            assertTrue(preset.name.isNotBlank())
+            val found = com.example.roadtolegend.data.AvatarManager.getPresetById(preset.id)
+            assertNotNull("Phải tìm thấy preset bằng getPresetById(${preset.id})", found)
+            assertEquals(preset.name, found?.name)
+        }
+
+        // Test fallback khi id không tồn tại
+        val notFound = com.example.roadtolegend.data.AvatarManager.getPresetById("non_existent_preset_id")
+        assertEquals(null, notFound)
+    }
+
+    // TEST NHÓM A: SquadDatabase chứa thông tin chi tiết của cầu thủ người chơi (số trận, bàn thắng, kiến tạo, avatar)
+    @Test
+    fun testSquadDatabaseIncludesUserWithStatsAndAvatar() {
+        val userPlayer = Player(
+            id = "user_test_p1",
+            name = "Nguyễn Văn Hùng",
+            age = 19,
+            primaryPosition = Position.CAM,
+            pac = 78.0, sho = 76.0, pas = 82.0, dri = 80.0, sta = 75.0, def = 55.0,
+            customAvatarPath = "preset:preset_playmaker"
+        )
+        userPlayer.careerStats.matchesPlayed = 25
+        userPlayer.careerStats.goals = 12
+        userPlayer.careerStats.assists = 8
+
+        val targetClubId = "vn_hanoi_fc"
+        val squad = SquadDatabase.getSquadForClub(targetClubId, userPlayer, userClubId = targetClubId)
+
+        val userInSquad = squad.find { it.isUser }
+        assertNotNull("Cầu thủ người chơi phải có mặt trong danh sách đội hình", userInSquad)
+        assertEquals("Nguyễn Văn Hùng ★", userInSquad?.name)
+        assertEquals("preset:preset_playmaker", userInSquad?.customAvatarPath)
+        assertEquals(25, userInSquad?.matchesPlayed)
+        assertEquals(12, userInSquad?.goals)
+        assertEquals(8, userInSquad?.assists)
+    }
+
+    // TEST NHÓM A: Cấu trúc nhiều giải đấu (V-League 1, V-League 2, Cúp Quốc Gia) và bảng xếp hạng
+    @Test
+    fun testMultiLeagueStructureAndStandings() {
+        val leagueV1 = DefaultDatabase.initializeLeague("vleague_1")
+        val leagueV2 = DefaultDatabase.initializeLeague("vleague_2")
+        val leagueCup = DefaultDatabase.initializeLeague("national_cup")
+
+        assertTrue("V-League 1 phải có từ 8 CLB trở lên", leagueV1.clubs.size >= 8)
+        assertTrue("V-League 2 phải có từ 6 CLB trở lên", leagueV2.clubs.size >= 6)
+        assertTrue("Cúp Quốc Gia có sự góp mặt của cả 2 hạng đấu", leagueCup.clubs.size >= 14)
+
+        assertEquals(leagueV1.clubs.size, leagueV1.standings.size)
+        assertEquals(leagueV2.clubs.size, leagueV2.standings.size)
+        assertEquals(leagueCup.clubs.size, leagueCup.standings.size)
+
+        // Kiểm tra các trường bảng xếp hạng ban đầu
+        for (item in leagueV1.standings) {
+            assertEquals(0, item.played)
+            assertEquals(0, item.points)
+            assertEquals(0, item.goalDifference)
+        }
+    }
+
+    // TEST NHÓM C: Tương thích lưu trữ Avatar và backward-compatibility
+    @Test
+    fun testPlayerCustomAvatarPathCompatibility() {
+        // Player mặc định không có customAvatarPath (null)
+        val defaultPlayer = Player(
+            id = "default_test",
+            name = "Cầu Thủ Mới",
+            age = 18,
+            primaryPosition = Position.ST
+        )
+        assertEquals(null, defaultPlayer.customAvatarPath)
+
+        // Gán đường dẫn ảnh tự chọn hoặc preset
+        val updatedPlayer = defaultPlayer.copy(customAvatarPath = "/data/user/0/avatar.jpg")
+        assertEquals("/data/user/0/avatar.jpg", updatedPlayer.customAvatarPath)
+
+        // Preset avatar path
+        val presetPlayer = defaultPlayer.copy(customAvatarPath = "preset:preset_gold_star")
+        assertEquals("preset:preset_gold_star", presetPlayer.customAvatarPath)
+    }
+
+    // =========================================================================
+    // TEST GIAI ĐOẠN 2 - PHẦN A: CHUYỂN NHƯỢNG QUỐC TẾ & XUẤT NGOẠI
+    // =========================================================================
+
+    @Test
+    fun testWorkPermitEvaluationStrictRules() {
+        val agent = Agent(id = "ag1", name = "Người Đại Diện Cơ Bản", tier = AgentTier.BEGINNER)
+        val superAgent = Agent(id = "ag2", name = "Siêu Cò Quốc Tế", tier = AgentTier.SUPER_AGENT)
+
+        val youngPlayer = Player(
+            id = "vn_young",
+            name = "Nguyễn Văn Trẻ",
+            nationality = "Việt Nam",
+            pac = 55.0, sho = 55.0, pas = 55.0, dri = 55.0, sta = 55.0, def = 55.0,
+            domesticReputation = 15,
+            globalReputation = 5
+        ) // OVR = 55
+
+        val clubs = DefaultDatabase.getAllClubs()
+        val thaiClub = clubs.first { it.country == "Thái Lan" }
+        val premierClub = clubs.first { it.country == "Anh" }
+        val germanClub = clubs.first { it.country == "Đức" }
+
+        // 1. Cầu thủ trẻ (OVR 55, Rep 5) nộp đơn sang Ngoại hạng Anh -> Bị từ chối GBE
+        val engResult = InternationalTransferRules.evaluateWorkPermit(youngPlayer, premierClub, agent)
+        assertFalse("Cầu thủ OVR 55 không thể xin được GBE Ngoại Hạng Anh", engResult.isApproved)
+        assertNotNull(engResult.reasonVi)
+        assertTrue("Lý do từ chối phải rõ ràng bằng tiếng Việt", engResult.reasonVi!!.contains("GBE"))
+        // NGUYÊN TẮC GIAO DIỆN: Không chứa ký tự % trong phản hồi
+        assertFalse("Tuyệt đối không hiển thị tỷ lệ % trong thông báo", engResult.reasonVi!!.contains("%"))
+
+        // 2. Sang Đức Bundesliga cũng bị từ chối
+        val gerResult = InternationalTransferRules.evaluateWorkPermit(youngPlayer, germanClub, agent)
+        assertFalse(gerResult.isApproved)
+
+        // 3. Cầu thủ đẳng cấp cao (OVR 80, Rep 50) + Super Agent -> Đạt giấy phép Ngoại hạng Anh
+        val starPlayer = Player(
+            id = "vn_star",
+            name = "Nguyễn Siêu Sao",
+            nationality = "Việt Nam",
+            pac = 82.0, sho = 82.0, pas = 80.0, dri = 80.0, sta = 80.0, def = 76.0,
+            domesticReputation = 95,
+            globalReputation = 50
+        )
+        starPlayer.careerStats.matchesPlayed = 60
+        val starEngResult = InternationalTransferRules.evaluateWorkPermit(starPlayer, premierClub, superAgent)
+        assertTrue("Cầu thủ OVR 80 + Rep 50 với Super Agent phải được cấp phép GBE", starEngResult.isApproved)
+
+        // 4. Suất ngoại binh ASEAN của Thái Lan cho cầu thủ đạt OVR 60
+        val midPlayer = Player(
+            id = "vn_mid",
+            name = "Trần Trung Bình",
+            nationality = "Việt Nam",
+            pac = 62.0, sho = 60.0, pas = 60.0, dri = 60.0, sta = 60.0, def = 58.0,
+            domesticReputation = 25,
+            globalReputation = 10
+        )
+        val thaiResult = InternationalTransferRules.evaluateWorkPermit(midPlayer, thaiClub, agent)
+        assertTrue("Cầu thủ OVR 60 đủ điều kiện suất ASEAN của Thai League", thaiResult.isApproved)
+    }
+
+    @Test
+    fun testCulturalAdaptationImpact() {
+        val beginnerAgent = Agent(id = "ag1", name = "Agent Thường", tier = AgentTier.BEGINNER)
+        val superAgent = Agent(id = "ag2", name = "Super Agent", tier = AgentTier.SUPER_AGENT)
+
+        val player = Player(
+            id = "p_adapt",
+            name = "Cầu Thủ Xuất Ngoại",
+            nationality = "Việt Nam",
+            age = 22,
+            morale = 75
+        )
+
+        // 1. Chuyển nhượng nội địa (Việt Nam -> Việt Nam): Morale tăng, không có culture shock
+        val domesticAdapt = InternationalTransferRules.calculateAdaptation(
+            player = player,
+            oldCountry = "Việt Nam",
+            newCountry = "Việt Nam",
+            agent = beginnerAgent
+        )
+        assertTrue("Chuyển nhượng trong nước mang lại tinh thần tích cực", domesticAdapt.moraleDelta > 0)
+        assertTrue("Chemistry khởi đầu trong nước cao hơn", domesticAdapt.teamChemistryStart >= 40)
+
+        // 2. Xuất ngoại sang Châu Âu (Anh) với Agent thường: Gặp culture shock, giảm morale
+        val europeAdapt = InternationalTransferRules.calculateAdaptation(
+            player = player,
+            oldCountry = "Việt Nam",
+            newCountry = "Anh",
+            agent = beginnerAgent
+        )
+        assertTrue("Xuất ngoại Châu Âu gây sụt giảm tinh thần do bỡ ngỡ", europeAdapt.moraleDelta < 0)
+
+        // 3. Xuất ngoại sang Châu Âu với Super Agent: Giảm nhẹ cú sốc văn hóa
+        val superAgentAdapt = InternationalTransferRules.calculateAdaptation(
+            player = player,
+            oldCountry = "Việt Nam",
+            newCountry = "Anh",
+            agent = superAgent
+        )
+        assertTrue(
+            "Super Agent giúp giảm thiểu mức độ ảnh hưởng của cú sốc văn hóa",
+            superAgentAdapt.moraleDelta > europeAdapt.moraleDelta
+        )
+    }
+
+    @Test
+    fun testTransferWindowStrictClosureRule() {
+        val vLeague1 = DefaultDatabase.initializeLeague("vleague_1")
+        val clubA = vLeague1.clubs[0]
+        val clubB = vLeague1.clubs[1]
+
+        val player = Player(id = "p_window", name = "Cầu Thủ Đang Hợp Đồng", primaryPosition = Position.ST)
+        val contract = Contract(
+            clubId = clubA.id,
+            clubName = clubA.name,
+            weeklyWage = 1000,
+            startSeason = 1,
+            endSeason = 3,
+            isFreeAgent = false
+        )
+        val state = CareerState(
+            player = player,
+            currentClub = clubA,
+            currentLeague = vLeague1,
+            currentContract = contract,
+            isTransferWindowOpen = false // ĐÃ ĐÓNG KỲ CHUYỂN NHƯỢNG
+        )
+
+        val offer = TransferOffer(
+            id = "offer_closed",
+            buyingClubId = clubB.id,
+            buyingClubName = clubB.name,
+            buyingClubCountry = clubB.country,
+            offerWage = 1500,
+            transferFee = 100_000,
+            signingBonus = 5_000,
+            isWorkPermitApproved = true
+        )
+
+        val success = TransferMarketEngine.executePlayerTransfer(state, offer, contract)
+        assertFalse("Không thể thực hiện chuyển nhượng khi thị trường đã đóng nếu không phải cầu thủ tự do", success)
+    }
+
+    @Test
+    fun testInternationalTransferExecutionUpdatesCareerAndLeague() {
+        val vLeague1 = DefaultDatabase.initializeLeague("vleague_1")
+        val oldClub = vLeague1.clubs.first()
+        val clubs = DefaultDatabase.getAllClubs()
+        val foreignClub = clubs.first { it.country == "Thái Lan" }
+
+        val player = Player(
+            id = "p_thai",
+            name = "Nguyễn Thái Lan",
+            nationality = "Việt Nam",
+            primaryPosition = Position.ST,
+            morale = 70
+        )
+        val currentContract = Contract(
+            clubId = oldClub.id,
+            clubName = oldClub.name,
+            weeklyWage = 800,
+            startSeason = 1,
+            endSeason = 2,
+            isFreeAgent = false
+        )
+        val state = CareerState(
+            player = player,
+            currentClub = oldClub,
+            currentLeague = vLeague1,
+            currentContract = currentContract,
+            isTransferWindowOpen = true
+        )
+
+        val newContract = Contract(
+            clubId = foreignClub.id,
+            clubName = foreignClub.name,
+            weeklyWage = 2500,
+            signingBonus = 10000,
+            startSeason = 1,
+            endSeason = 3,
+            squadRole = SquadRole.KEY_PLAYER
+        )
+
+        val offer = TransferOffer(
+            id = "offer_intl",
+            buyingClubId = foreignClub.id,
+            buyingClubName = foreignClub.name,
+            buyingClubCountry = foreignClub.country,
+            offerWage = 2500,
+            transferFee = 200_000,
+            signingBonus = 10000,
+            isWorkPermitApproved = true
+        )
+
+        val result = TransferMarketEngine.executePlayerTransfer(state, offer, newContract)
+        assertTrue("Chuyển nhượng quốc tế hợp lệ phải thành công", result)
+        assertEquals(foreignClub.id, state.currentClub.id)
+        assertEquals("thai_league", state.currentLeague.id)
+        assertNotNull(state.nextOpponent)
+        assertEquals(SquadRole.KEY_PLAYER, state.currentContract.squadRole)
+        assertTrue(player.milestones.any { it.title.contains("Xuất ngoại") })
+    }
+
+    @Test
+    fun testAITransferMarketGlobalSimulationStability() {
+        val vLeague1 = DefaultDatabase.initializeLeague("vleague_1")
+        val state = CareerState(
+            player = Player(id = "p_ai", name = "Test AI", primaryPosition = Position.ST),
+            currentClub = vLeague1.clubs.first(),
+            currentLeague = vLeague1,
+            currentContract = Contract(clubId = vLeague1.clubs.first().id, clubName = vLeague1.clubs.first().name, weeklyWage = 500, startSeason = 1, endSeason = 2),
+            isTransferWindowOpen = true
+        )
+
+        // Mô phỏng 5 lần thị trường chuyển nhượng AI
+        for (i in 0 until 5) {
+            val transactions = TransferMarketEngine.simulateAITransferMarket(state, Random(100 + i))
+            // Kiểm tra không có giao dịch nào với ngân sách âm
+            for (tx in transactions) {
+                assertTrue("Phí chuyển nhượng phải lớn hơn 0", tx.fee >= 0)
+            }
+        }
+
+        // Đảm bảo ngân sách các CLB toàn cầu không bị âm
+        val allClubs = DefaultDatabase.getAllClubs()
+        for (club in allClubs) {
+            assertTrue("Ngân sách CLB ${club.name} không được âm", club.budget >= 0)
+        }
+    }
+
+    @Test
+    fun testSaveGameManagerCompatibilityWithInternationalFields() {
+        val offerWithIntl = TransferOffer(
+            id = "test_intl_save",
+            buyingClubId = "buriram_united",
+            buyingClubName = "Buriram United",
+            buyingClubCountry = "Thái Lan",
+            offerWage = 3000,
+            transferFee = 250_000,
+            signingBonus = 15_000,
+            isWorkPermitApproved = false,
+            workPermitNote = "Hạn ngạch ngoại binh ASEAN cần bổ sung hồ sơ."
+        )
+
+        val vLeague1 = DefaultDatabase.initializeLeague("vleague_1")
+        val state = CareerState(
+            player = Player(id = "p_save", name = "Cầu Thủ Save", primaryPosition = Position.ST),
+            currentClub = vLeague1.clubs.first(),
+            currentLeague = vLeague1,
+            currentContract = Contract(clubId = vLeague1.clubs.first().id, clubName = vLeague1.clubs.first().name, weeklyWage = 500, startSeason = 1, endSeason = 2),
+            transferOffers = mutableListOf(offerWithIntl)
+        )
+
+        val json = SaveGameManager.serializeState(state)
+        val loaded = SaveGameManager.deserializeState(json)
+
+        assertNotNull(loaded)
+        assertEquals(1, loaded!!.transferOffers.size)
+        val loadedOffer = loaded.transferOffers.first()
+        assertEquals("Thái Lan", loadedOffer.buyingClubCountry)
+        assertEquals(false, loadedOffer.isWorkPermitApproved)
+        assertEquals("Hạn ngạch ngoại binh ASEAN cần bổ sung hồ sơ.", loadedOffer.workPermitNote)
+    }
 }
+
 

@@ -25,7 +25,11 @@ data class ClubPlayer(
     val preferredFoot: Foot = Foot.RIGHT,   // Chân thuận
     val heightCm: Int = 175,                // Chiều cao (cm)
     val avatarResName: String = "player_$id", // Tên file ảnh trong res/drawable/ (ví dụ: player_vn_cong_phuong)
-    val isUser: Boolean = false             // Đánh dấu cầu thủ này có phải là nhân vật của người chơi
+    val isUser: Boolean = false,            // Đánh dấu cầu thủ này có phải là nhân vật của người chơi
+    val matchesPlayed: Int = 0,             // Số trận đã thi đấu mùa này
+    val goals: Int = 0,                     // Số bàn thắng
+    val assists: Int = 0,                   // Số kiến tạo
+    val customAvatarPath: String? = null    // Đường dẫn ảnh đại diện tùy chỉnh (nếu có)
 ) {
     val positionCategory: PositionCategory
         get() = position.category

@@ -177,9 +177,10 @@ fun PlayerDetailDialog(
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = if (player.isUser) "Cầu thủ của BẠN" else "Cầu thủ đối thủ/đồng đội",
-                                fontSize = 11.sp,
-                                color = if (player.isUser) GoldPrimary else TextMuted
+                                text = "${player.matchesPlayed} trận • ${player.goals} bàn • ${player.assists} kiến tạo",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (player.isUser) GoldPrimary else TextSecondary
                             )
                         }
                     }

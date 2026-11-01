@@ -2,11 +2,14 @@ package com.example.roadtolegend.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,11 +19,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import com.example.roadtolegend.data.AvatarManager
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -39,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.roadtolegend.model.Club
 import com.example.roadtolegend.model.Player
+import com.example.ui.theme.DarkBg
 import com.example.ui.theme.DarkCardBorder
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DarkSurfaceVariant
@@ -58,7 +67,8 @@ import com.example.ui.theme.TextSecondary
 fun FUTPlayerCard(
     player: Player,
     club: Club,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAvatarClick: (() -> Unit)? = null
 ) {
     Card(
         modifier = modifier
@@ -129,10 +139,16 @@ fun FUTPlayerCard(
                 }
 
                 // Cầu thủ Avatar / Silhouette với viền vàng
+                val customBitmap = remember(player.customAvatarPath) { AvatarManager.loadBitmapFromFile(player.customAvatarPath) }
+                val preset = remember(player.customAvatarPath) { AvatarManager.getPresetById(player.customAvatarPath) }
+
                 Box(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
+                        .then(
+                            if (onAvatarClick != null) Modifier.clickable { onAvatarClick() } else Modifier
+                        )
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(GoldDark.copy(alpha = 0.5f), DarkSurfaceVariant)
@@ -141,12 +157,63 @@ fun FUTPlayerCard(
                         .border(2.dp, GoldPrimary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Avatar cầu thủ",
-                        modifier = Modifier.size(52.dp),
-                        tint = GoldPrimary
-                    )
+                    when {
+                        customBitmap != null -> {
+                            Image(
+                                bitmap = customBitmap.asImageBitmap(),
+                                contentDescription = "Avatar cầu thủ",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        preset != null -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(preset.themeColor, preset.accentColor)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = preset.icon,
+                                    contentDescription = preset.name,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(44.dp)
+                                )
+                            }
+                        }
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Avatar cầu thủ",
+                                modifier = Modifier.size(52.dp),
+                                tint = GoldPrimary
+                            )
+                        }
+                    }
+
+                    // Huy hiệu Camera nhỏ báo hiệu có thể đổi ảnh khi chạm
+                    if (onAvatarClick != null) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(GoldPrimary)
+                                .border(1.5.dp, DarkSurface, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Đổi ảnh đại diện",
+                                tint = DarkBg,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
                 }
             }
 

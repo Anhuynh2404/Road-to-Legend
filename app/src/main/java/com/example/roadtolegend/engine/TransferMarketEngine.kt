@@ -65,17 +65,37 @@ object TransferMarketEngine {
             return
         }
 
-        // Chọn CLB tiềm năng đưa ra lời đề nghị
+        // Chọn CLB tiềm năng đưa ra lời đề nghị dựa trên OVR, Danh tiếng và Cấp bậc Agent
         val candidateClubs = mutableListOf<Club>()
         candidateClubs.addAll(DefaultDatabase.createVLeague1Clubs())
         candidateClubs.addAll(DefaultDatabase.createVLeague2Clubs())
 
-        // Nếu Agent cấp cao hoặc cầu thủ OVR cao -> mở rộng sang CLB Châu Âu / Anh
-        if (agent.tier == AgentTier.ELITE || agent.tier == AgentTier.SUPER_AGENT || player.ovr >= 70) {
+        // 1. Giải Đông Nam Á (Thái Lan) - Bước đệm xuất ngoại đầu tiên
+        if (player.ovr >= 58 || player.domesticReputation >= 18 || agent.tier >= AgentTier.ROOKIE) {
+            candidateClubs.addAll(DefaultDatabase.createThaiLeagueClubs())
+        }
+
+        // 2. Giải Đông Á (Hàn Quốc - K League 1)
+        if (player.ovr >= 64 || player.globalReputation >= 12 || agent.tier >= AgentTier.EXPERIENCED) {
+            candidateClubs.addAll(DefaultDatabase.createKLeagueClubs())
+        }
+
+        // 3. Giải Châu Âu Cửa ngõ & Hạng Nhất Anh (Primeira Liga & EFL Championship)
+        if (player.ovr >= 68 || player.globalReputation >= 20 || agent.tier >= AgentTier.ELITE) {
+            candidateClubs.addAll(DefaultDatabase.createPrimeiraLigaClubs())
             candidateClubs.addAll(DefaultDatabase.createChampionshipClubs())
-            if (player.ovr >= 78) {
-                candidateClubs.addAll(DefaultDatabase.createPremierLeagueClubs())
-            }
+        }
+
+        // 4. Giải Top 5 Châu Âu (Bundesliga, Serie A, Ligue 1)
+        if (player.ovr >= 74 || player.globalReputation >= 32 || agent.tier >= AgentTier.ELITE) {
+            candidateClubs.addAll(DefaultDatabase.createBundesligaClubs())
+            candidateClubs.addAll(DefaultDatabase.createSerieAClubs())
+            candidateClubs.addAll(DefaultDatabase.createLigue1Clubs())
+        }
+
+        // 5. Giải Ngoại Hạng Anh (Premier League - Yêu cầu GBE cao nhất)
+        if (player.ovr >= 77 || player.globalReputation >= 42 || agent.tier == AgentTier.SUPER_AGENT) {
+            candidateClubs.addAll(DefaultDatabase.createPremierLeagueClubs())
         }
 
         val eligibleClubs = candidateClubs.filter { it.id != currentClub.id }
@@ -83,15 +103,26 @@ object TransferMarketEngine {
 
         val buyerClub = eligibleClubs[random.nextInt(eligibleClubs.size)]
 
+        // Kiểm tra Giấy phép lao động (Work Permit) nếu xuất ngoại
+        val workPermit = InternationalTransferRules.evaluateWorkPermit(player, buyerClub, agent)
+        if (!workPermit.isApproved) {
+            // Nếu không đạt giấy phép lao động: 70% trường hợp CLB không gửi offer để tránh spam
+            // 30% gửi offer với trạng thái bị chặn (BLOCKED_WORK_PERMIT) để người chơi thấy sự quan tâm và lý do bằng chữ
+            if (random.nextInt(100) < 70) {
+                return
+            }
+        }
+
         // Xác định loại hợp đồng: Chuyển nhượng mua đứt hay Mượn cầu thủ (Loan)
-        val isLoanOffer = (player.age <= 21 && player.ovr < buyerClub.squadOvrAverage - 2) || (random.nextInt(100) < 25)
+        val isLoanOffer = (player.age <= 21 && player.ovr < buyerClub.squadOvrAverage - 2) || (random.nextInt(100) < 22)
 
         val fee = if (isLoanOffer) 0L else (marketValue * (0.85 + random.nextDouble(0.40))).toLong()
         val offeredWage = TransferConfig.calculateRecommendedWage(
             playerOvr = player.ovr,
-            playerReputation = player.domesticReputation,
+            playerReputation = if (buyerClub.country == player.nationality) player.domesticReputation else player.globalReputation,
             clubTier = buyerClub.tier,
-            clubBudget = buyerClub.budget
+            clubBudget = buyerClub.budget,
+            clubReputation = buyerClub.reputation
         )
         val offeredBonus = (offeredWage * random.nextInt(6, 16)).coerceAtLeast(3_000L)
 
@@ -100,6 +131,12 @@ object TransferMarketEngine {
             player.ovr >= buyerClub.squadOvrAverage -> SquadRole.KEY_PLAYER
             player.ovr >= buyerClub.squadOvrAverage - 3 -> SquadRole.ROTATION
             else -> SquadRole.PROSPECT
+        }
+
+        val offerStatus = if (workPermit.isApproved) {
+            TransferOfferStatus.APPROVED_AWAITING_PLAYER
+        } else {
+            TransferOfferStatus.BLOCKED_WORK_PERMIT
         }
 
         val offer = TransferOffer(
@@ -117,7 +154,7 @@ object TransferMarketEngine {
             offeredBonusPerGoal = (offeredWage * 0.18).toLong().coerceAtLeast(100L),
             offeredBonusPerAssist = (offeredWage * 0.10).toLong().coerceAtLeast(50L),
             offeredReleaseClause = if (buyerClub.tier == 1) fee * 2 else null,
-            status = TransferOfferStatus.APPROVED_AWAITING_PLAYER,
+            status = offerStatus,
             isLoan = isLoanOffer,
             loanWageSharePercent = if (isLoanOffer) random.nextInt(70, 101) else 100,
             loanBuyOptionFee = if (isLoanOffer && random.nextBoolean()) (marketValue * 1.2).toLong() else null,
@@ -126,21 +163,28 @@ object TransferMarketEngine {
             createdWeek = state.currentWeek,
             expiresInWeeks = if (state.isDeadlineDay) 1 else 2,
             isDeadlineDeal = state.isDeadlineDay,
-            scoutNote = if (isLoanOffer) {
-                "${buyerClub.shortName} muốn mượn bạn để tăng cường hàng công và cam kết trao cơ hội thi đấu thường xuyên."
+            scoutNote = if (!workPermit.isApproved) {
+                "Hồ sơ chuyển nhượng bị chặn: ${workPermit.reasonVi}"
+            } else if (isLoanOffer) {
+                "${buyerClub.shortName} (${buyerClub.country}) muốn mượn bạn để trao cơ hội thi đấu thường xuyên."
             } else {
-                "${buyerClub.shortName} rất ấn tượng với chỉ số OVR ${player.ovr} và sẵn sàng chi trả mức lương hấp dẫn."
-            }
+                "${buyerClub.shortName} (${buyerClub.country}) rất ấn tượng với năng lực OVR ${player.ovr} và sẵn sàng chi trả mức lương hấp dẫn."
+            },
+            buyingClubCountry = buyerClub.country,
+            isWorkPermitApproved = workPermit.isApproved,
+            workPermitNote = workPermit.reasonVi
         )
 
         state.incomingOffers.add(0, offer)
         agent.totalOffersBrought++
 
         // Ghi tin tức thông báo
-        val newsHeadline = if (isLoanOffer) {
-            "TIN CHUYỂN NHƯỢNG: ${buyerClub.shortName} gửi đề nghị mượn tài năng trẻ ${player.name}!"
+        val newsHeadline = if (!workPermit.isApproved) {
+            "QUAN TÂM BỊ CHẶN: ${buyerClub.name} (${buyerClub.country}) muốn có ${player.name} nhưng vướng rào cản giấy phép lao động!"
+        } else if (isLoanOffer) {
+            "TIN CHUYỂN NHƯỢNG: ${buyerClub.shortName} (${buyerClub.country}) gửi đề nghị mượn tài năng trẻ ${player.name}!"
         } else {
-            "HOT: ${buyerClub.shortName} chính thức gửi lời đề nghị chiêu mộ ${player.name} với giá trị hấp dẫn!"
+            "HOT: ${buyerClub.shortName} (${buyerClub.country}) chính thức gửi lời đề nghị chiêu mộ ${player.name}!"
         }
         state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, newsHeadline, offer.scoutNote, "TRANSFER", "Chuyển Nhượng 24h", 1, false, buyerClub.id))
     }
@@ -153,16 +197,22 @@ object TransferMarketEngine {
         offer: TransferOffer,
         finalContract: Contract
     ): Boolean {
+        // Chặn chuyển nhượng ngoài kỳ nếu không phải cầu thủ tự do
+        if (!state.isTransferWindowOpen && !state.currentContract.isFreeAgent) {
+            return false
+        }
+
+        // Chặn nếu chưa đạt giấy phép lao động
+        if (!offer.isWorkPermitApproved) {
+            return false
+        }
+
         val player = state.player
         val oldClub = state.currentClub
         val agent = state.agent
 
-        // 1. Tìm thông tin CLB mua trong cơ sở dữ liệu
-        val allClubs = DefaultDatabase.createVLeague2Clubs() +
-                DefaultDatabase.createVLeague1Clubs() +
-                DefaultDatabase.createChampionshipClubs() +
-                DefaultDatabase.createPremierLeagueClubs()
-
+        // 1. Tìm thông tin CLB mua trong toàn bộ cơ sở dữ liệu CLB
+        val allClubs = DefaultDatabase.getAllClubs()
         val newClub = allClubs.find { it.id == offer.buyingClubId } ?: return false
 
         // 2. Chuyển đổi giải đấu nếu sang giải khác
@@ -183,10 +233,32 @@ object TransferMarketEngine {
             SquadRole.PROSPECT -> 55
             SquadRole.BACKUP -> 45
         }
-        player.teamChemistry = 45 // Cần thời gian hòa nhập đội mới
-        player.morale = (player.morale + 10).coerceAtMost(100)
 
-        // 4. Nhận tiền lót tay (Signing Bonus) trừ đi hoa hồng của Agent
+        // 4. Áp dụng hiệu ứng Hòa nhập văn hóa & Ngôn ngữ (Culture Shock / Adaptation)
+        val isSameCountry = (oldClub.country == newClub.country)
+        val adaptation = InternationalTransferRules.calculateAdaptation(
+            player = player,
+            oldCountry = oldClub.country,
+            newCountry = newClub.country,
+            agent = agent
+        )
+        player.teamChemistry = adaptation.teamChemistryStart
+        player.morale = (player.morale + adaptation.moraleDelta).coerceIn(15, 100)
+
+        // 5. Cập nhật ngay đối thủ tiếp theo và lịch thi đấu của giải đấu mới
+        val otherClubs = state.currentLeague.clubs.filter { it.id != newClub.id }
+        if (otherClubs.isNotEmpty()) {
+            state.nextOpponent = otherClubs[state.currentWeek % otherClubs.size]
+            LeagueSimulator.generateRoundFixtures(
+                league = state.currentLeague,
+                roundNumber = state.currentWeek,
+                userClubId = newClub.id,
+                opponentClubId = state.nextOpponent?.id ?: otherClubs.first().id,
+                userMatch = null
+            )
+        }
+
+        // 6. Nhận tiền lót tay (Signing Bonus) trừ đi hoa hồng của Agent
         val rawBonus = finalContract.signingBonus
         val agentCommission = (rawBonus * (agent.tier.commissionPercent / 100.0)).toLong()
         val netSigningBonus = rawBonus - agentCommission
@@ -223,12 +295,21 @@ object TransferMarketEngine {
             )
         }
 
-        // 5. Cập nhật trạng thái offer
+        // 7. Cập nhật trạng thái offer
         offer.status = TransferOfferStatus.COMPLETED
 
-        // 6. Ghi nhận lịch sử và tin tức bom tấn
-        val transferNews = "CHÍNH THỨC: ${player.name} chia tay ${oldClub.shortName} để gia nhập ${newClub.name} với mức phí thỏa thuận!"
-        state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, transferNews, "Cầu thủ cam kết hợp đồng ${finalContract.contractYearsRemaining} năm với mức đãi ngộ hấp dẫn.", "TRANSFER", "Chính Thức CLB", 1, false, newClub.id))
+        // 8. Ghi nhận lịch sử và tin tức bom tấn
+        val transferNews = if (!isSameCountry) {
+            "BOM TẤN XUẤT NGOẠI: ${player.name} chính thức rời ${oldClub.shortName} (${oldClub.country}) để gia nhập ${newClub.name} (${newClub.country})!"
+        } else {
+            "CHÍNH THỨC: ${player.name} chia tay ${oldClub.shortName} để gia nhập ${newClub.name} với mức phí thỏa thuận!"
+        }
+
+        state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, transferNews, adaptation.descriptionVi, "TRANSFER", "Chính Thức CLB", 1, false, newClub.id))
+
+        if (!isSameCountry) {
+            player.addMilestoneIfNew("Xuất ngoại sang ${newClub.country}", "Chính thức gia nhập ${newClub.name} (${newClub.country}) theo bản hợp đồng quốc tế đỉnh cao.", "Mùa ${state.seasonNumber} - Tuần ${state.currentWeek}", "🌍")
+        }
         player.addMilestoneIfNew("Chuyển nhượng sang ${newClub.shortName}", "Gia nhập ${newClub.name} với mức phí chuyển nhượng chuyên nghiệp.", "Mùa ${state.seasonNumber} - Tuần ${state.currentWeek}", "✈️")
 
         return true
@@ -241,14 +322,13 @@ object TransferMarketEngine {
         state: CareerState,
         offer: TransferOffer
     ): Boolean {
+        if (!state.isTransferWindowOpen && !state.currentContract.isFreeAgent) return false
+        if (!offer.isWorkPermitApproved) return false
+
         val player = state.player
         val parentClub = state.currentClub
 
-        val allClubs = DefaultDatabase.createVLeague2Clubs() +
-                DefaultDatabase.createVLeague1Clubs() +
-                DefaultDatabase.createChampionshipClubs() +
-                DefaultDatabase.createPremierLeagueClubs()
-
+        val allClubs = DefaultDatabase.getAllClubs()
         val loanClub = allClubs.find { it.id == offer.buyingClubId } ?: return false
 
         state.activeLoan = LoanRecord(
@@ -271,9 +351,21 @@ object TransferMarketEngine {
         state.currentClub = loanClub
         player.managerTrust = 75 // CLB mượn cam kết tạo điều kiện ra sân
 
+        val otherClubs = state.currentLeague.clubs.filter { it.id != loanClub.id }
+        if (otherClubs.isNotEmpty()) {
+            state.nextOpponent = otherClubs[state.currentWeek % otherClubs.size]
+            LeagueSimulator.generateRoundFixtures(
+                league = state.currentLeague,
+                roundNumber = state.currentWeek,
+                userClubId = loanClub.id,
+                opponentClubId = state.nextOpponent?.id ?: otherClubs.first().id,
+                userMatch = null
+            )
+        }
+
         offer.status = TransferOfferStatus.COMPLETED
 
-        val loanNews = "CHO MƯỢN: ${player.name} tạm rời ${parentClub.shortName} để khoác áo ${loanClub.shortName} theo dạng cho mượn."
+        val loanNews = "CHO MƯỢN: ${player.name} tạm rời ${parentClub.shortName} để khoác áo ${loanClub.shortName} (${loanClub.country}) theo dạng cho mượn."
         state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, loanNews, "Mục tiêu nhằm tích lũy số phút thi đấu và kinh nghiệm cọ xát đỉnh cao.", "TRANSFER", "Tin Nội Bộ", 1, false, loanClub.id))
         player.addMilestoneIfNew("Chuyển nhượng dạng cho mượn", "Khoác áo ${loanClub.shortName} theo bản hợp đồng cho mượn.", "Tuần ${state.currentWeek}", "🔄")
 
@@ -282,29 +374,42 @@ object TransferMarketEngine {
 
     /**
      * Mô phỏng thị trường chuyển nhượng của các CLB máy (AI Transfers)
-     * Đảm bảo tính nhất quán: ngân sách CLB hợp lý, đội hình luôn đủ người và có thủ môn.
+     * Đảm bảo tính nhất quán: ngân sách CLB hợp lý, chuyển nhượng cả nội bộ và quốc tế.
      */
     fun simulateAITransferMarket(state: CareerState, random: Random = Random) {
         if (!TransferConfig.isTransferWindowOpen(state.currentWeek)) return
 
         // Mỗi tuần mở cửa sổ có 1 - 3 thương vụ AI diễn ra
         val numDeals = if (state.isDeadlineDay) random.nextInt(2, 5) else random.nextInt(1, 3)
-        val allClubs = state.currentLeague.clubs
+        val allClubsGlobal = DefaultDatabase.getAllClubs()
+        val currentLeagueClubs = state.currentLeague.clubs
 
         for (i in 0 until numDeals) {
-            val buyer = allClubs[random.nextInt(allClubs.size)]
-            val seller = allClubs[random.nextInt(allClubs.size)]
+            // 65% thương vụ diễn ra trong cùng giải, 35% là thương vụ quốc tế giữa các CLB khác giải
+            val isInternational = random.nextInt(100) < 35 && allClubsGlobal.size > 2
+
+            val buyer = if (isInternational) {
+                allClubsGlobal[random.nextInt(allClubsGlobal.size)]
+            } else {
+                currentLeagueClubs[random.nextInt(currentLeagueClubs.size)]
+            }
+
+            val seller = if (isInternational) {
+                allClubsGlobal[random.nextInt(allClubsGlobal.size)]
+            } else {
+                currentLeagueClubs[random.nextInt(currentLeagueClubs.size)]
+            }
+
             if (buyer.id == seller.id || buyer.id == state.currentClub.id) continue
 
             val sellerPlayers = com.example.roadtolegend.data.SquadDatabase.getSquadForClub(seller.id)
-            // Không chuyển nhượng nếu CLB bán chỉ còn đúng 1 thủ môn
             val outfieldPlayers = sellerPlayers.filter { it.position != com.example.roadtolegend.model.Position.GK }
             if (outfieldPlayers.isEmpty()) continue
 
             val targetPlayer = outfieldPlayers[random.nextInt(outfieldPlayers.size)]
             val fee = (targetPlayer.marketValue * random.nextDouble(0.85, 1.35)).toLong()
 
-            // Kiểm tra ngân sách CLB mua
+            // Kiểm tra ngân sách CLB mua và đảm bảo tính hợp lệ (tiền mua = tiền bán)
             if (buyer.budget >= fee) {
                 buyer.budget -= fee
                 seller.budget += fee
@@ -317,16 +422,20 @@ object TransferMarketEngine {
                     positionCode = targetPlayer.position.code,
                     ovr = targetPlayer.ovr,
                     fromClubId = seller.id,
-                    fromClubName = seller.shortName,
+                    fromClubName = "${seller.shortName} (${seller.country})",
                     toClubId = buyer.id,
-                    toClubName = buyer.shortName,
+                    toClubName = "${buyer.shortName} (${buyer.country})",
                     fee = fee
                 )
                 state.aiCompletedTransfers.add(0, record)
 
                 // Thêm bản tin chuyển nhượng AI nổi bật
-                if (targetPlayer.ovr >= 65 || state.isDeadlineDay) {
-                    val headline = "THƯƠNG VỤ HOÀN TẤT: ${buyer.shortName} chiêu mộ thành công ${targetPlayer.name} từ ${seller.shortName}!"
+                if (targetPlayer.ovr >= 68 || isInternational || state.isDeadlineDay) {
+                    val headline = if (isInternational) {
+                        "THƯƠNG VỤ QUỐC TẾ: ${buyer.shortName} (${buyer.country}) chiêu mộ ${targetPlayer.name} từ ${seller.shortName} (${seller.country})!"
+                    } else {
+                        "THƯƠNG VỤ HOÀN TẤT: ${buyer.shortName} chiêu mộ thành công ${targetPlayer.name} từ ${seller.shortName}!"
+                    }
                     state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, headline, "Mức phí chuyển nhượng được tiết lộ vào khoảng €${fee}.", "TRANSFER", "Thị Trường AI", 2, false, buyer.id))
                 }
             }
@@ -369,6 +478,9 @@ object TransferMarketEngine {
         val player = state.player
         val currentClub = state.currentClub
 
+        if (!TransferConfig.isTransferWindowOpen(state.currentWeek)) {
+            return false to "Cửa sổ chuyển nhượng hiện đang đóng. Bạn chỉ có thể gửi yêu cầu mượn cầu thủ trong kỳ chuyển nhượng."
+        }
         if (state.currentContract.isFreeAgent) {
             return false to "Bạn đang là cầu thủ tự do, hãy ký hợp đồng chính thức trước."
         }
@@ -379,35 +491,40 @@ object TransferMarketEngine {
             return false to "HLV trưởng từ chối: 'Cậu là nhân tố nòng cốt của đội một, CLB không thể để cậu ra đi dạng cho mượn!'"
         }
 
-        // Tăng cơ hội nhận offer cho mượn ngay trong tuần
-        val candidateClubs = (DefaultDatabase.createVLeague2Clubs() + DefaultDatabase.createVLeague1Clubs())
-            .filter { it.id != currentClub.id }
+        // Tăng cơ hội nhận offer cho mượn ngay trong tuần từ các CLB trong và ngoài nước phù hợp
+        val candidateClubs = DefaultDatabase.getAllClubs()
+            .filter { it.id != currentClub.id && it.squadOvrAverage <= player.ovr + 3 }
 
         if (candidateClubs.isNotEmpty()) {
             val loanClub = candidateClubs[random.nextInt(candidateClubs.size)]
-            val loanOffer = TransferOffer(
-                id = UUID.randomUUID().toString(),
-                buyingClubId = loanClub.id,
-                buyingClubName = loanClub.name,
-                buyingClubShortName = loanClub.shortName,
-                sellingClubId = currentClub.id,
-                sellingClubName = currentClub.name,
-                transferFee = 0L,
-                offeredWage = (state.currentContract.weeklyWage * 0.9).toLong().coerceAtLeast(200L),
-                offeredSigningBonus = 1_500L,
-                offeredContractYears = 1,
-                offeredRole = SquadRole.KEY_PLAYER,
-                status = TransferOfferStatus.APPROVED_AWAITING_PLAYER,
-                isLoan = true,
-                loanWageSharePercent = 80,
-                loanBuyOptionFee = (TransferConfig.calculateMarketValue(player, state.currentContract.totalWeeksRemaining) * 1.25).toLong(),
-                canRecall = true,
-                loanDurationWeeks = 13,
-                createdWeek = state.currentWeek,
-                expiresInWeeks = 2,
-                scoutNote = "${loanClub.shortName} sẵn sàng trao suất đá chính thường xuyên cho bạn theo đề nghị mượn."
-            )
-            state.incomingOffers.add(0, loanOffer)
+            val workPermit = InternationalTransferRules.evaluateWorkPermit(player, loanClub, state.agent)
+            if (workPermit.isApproved) {
+                val loanOffer = TransferOffer(
+                    id = UUID.randomUUID().toString(),
+                    buyingClubId = loanClub.id,
+                    buyingClubName = loanClub.name,
+                    buyingClubShortName = loanClub.shortName,
+                    sellingClubId = currentClub.id,
+                    sellingClubName = currentClub.name,
+                    transferFee = 0L,
+                    offeredWage = (state.currentContract.weeklyWage * 0.9).toLong().coerceAtLeast(250L),
+                    offeredSigningBonus = 1_500L,
+                    offeredContractYears = 1,
+                    offeredRole = SquadRole.KEY_PLAYER,
+                    status = TransferOfferStatus.APPROVED_AWAITING_PLAYER,
+                    isLoan = true,
+                    loanWageSharePercent = 80,
+                    loanBuyOptionFee = (TransferConfig.calculateMarketValue(player, state.currentContract.totalWeeksRemaining) * 1.25).toLong(),
+                    canRecall = true,
+                    loanDurationWeeks = 13,
+                    createdWeek = state.currentWeek,
+                    expiresInWeeks = 2,
+                    scoutNote = "${loanClub.shortName} (${loanClub.country}) sẵn sàng trao suất đá chính thường xuyên cho bạn theo đề nghị mượn.",
+                    buyingClubCountry = loanClub.country,
+                    isWorkPermitApproved = true
+                )
+                state.incomingOffers.add(0, loanOffer)
+            }
         }
 
         return true to "HLV trưởng đồng ý tạo điều kiện: Ban lãnh đạo đã mở đàm phán tìm CLB mượn cho bạn!"
@@ -425,7 +542,7 @@ object TransferMarketEngine {
             return false to "Hợp đồng mượn này không có điều khoản cho phép triệu hồi sớm."
         }
 
-        val allClubs = DefaultDatabase.createVLeague1Clubs() + DefaultDatabase.createVLeague2Clubs()
+        val allClubs = DefaultDatabase.getAllClubs()
         val parentClub = allClubs.find { it.id == loan.parentClubId } ?: return false to "Không tìm thấy thông tin CLB mẹ."
 
         state.currentClub = parentClub

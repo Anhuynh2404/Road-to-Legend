@@ -8,6 +8,7 @@ enum class TransferOfferStatus {
     ACCEPTED_BY_PLAYER,            // Cầu thủ đã chấp nhận, chuẩn bị ký chính thức
     REJECTED_BY_PLAYER,            // Cầu thủ từ chối lời đề nghị
     CANCELLED_BY_BUYER,            // CLB mua rút lại lời đề nghị (hết kiên nhẫn hoặc hết hạn)
+    BLOCKED_WORK_PERMIT,           // Bị cơ quan quản lý từ chối Giấy phép lao động / Visa
     COMPLETED                      // Thương vụ hoàn tất thành công
 }
 
@@ -35,8 +36,24 @@ data class TransferOffer(
     var createdWeek: Int = 1,
     var expiresInWeeks: Int = 2,
     var isDeadlineDeal: Boolean = false,
-    var scoutNote: String = "CLB đánh giá cao tiềm năng và phong độ gần đây của bạn."
+    var scoutNote: String = "CLB đánh giá cao tiềm năng và phong độ gần đây của bạn.",
+    var buyingClubCountry: String = "Việt Nam",
+    var isWorkPermitApproved: Boolean = true,
+    var workPermitNote: String? = null
 ) {
     val isPendingPlayerAction: Boolean
-        get() = status == TransferOfferStatus.APPROVED_AWAITING_PLAYER || status == TransferOfferStatus.NEGOTIATING_PLAYER_TERMS
+        get() = isWorkPermitApproved && (status == TransferOfferStatus.APPROVED_AWAITING_PLAYER || status == TransferOfferStatus.NEGOTIATING_PLAYER_TERMS)
+
+    val countryFlagEmoji: String
+        get() = when (buyingClubCountry) {
+            "Việt Nam" -> "🇻🇳"
+            "Thái Lan" -> "🇹🇭"
+            "Hàn Quốc" -> "🇰🇷"
+            "Bồ Đào Nha" -> "🇵🇹"
+            "Pháp" -> "🇫🇷"
+            "Ý" -> "🇮🇹"
+            "Đức" -> "🇩🇪"
+            "Anh" -> "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
+            else -> "🌍"
+        }
 }

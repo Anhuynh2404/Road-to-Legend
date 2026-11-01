@@ -83,6 +83,7 @@ object SaveGameManager {
             playerJson.put("injuryWeeksRemaining", p.injuryWeeksRemaining)
             playerJson.put("injuryName", p.injuryName ?: "")
             playerJson.put("peakMarketValue", p.peakMarketValue)
+            playerJson.put("customAvatarPath", p.customAvatarPath ?: "")
 
             // Career stats
             val cs = p.careerStats
@@ -239,6 +240,9 @@ object SaveGameManager {
                 oJson.put("expiresInWeeks", o.expiresInWeeks)
                 oJson.put("isDeadlineDeal", o.isDeadlineDeal)
                 oJson.put("scoutNote", o.scoutNote)
+                oJson.put("buyingClubCountry", o.buyingClubCountry)
+                oJson.put("isWorkPermitApproved", o.isWorkPermitApproved)
+                if (o.workPermitNote != null) oJson.put("workPermitNote", o.workPermitNote)
                 offersArray.put(oJson)
             }
             json.put("incomingOffers", offersArray)
@@ -403,7 +407,8 @@ object SaveGameManager {
                 injuryWeeksRemaining = pObj.optInt("injuryWeeksRemaining", 0),
                 injuryName = pObj.optString("injuryName").ifEmpty { null },
                 careerStats = careerStats,
-                peakMarketValue = pObj.optLong("peakMarketValue", 0L)
+                peakMarketValue = pObj.optLong("peakMarketValue", 0L),
+                customAvatarPath = pObj.optString("customAvatarPath").ifEmpty { null }
             )
 
             // Safe migration: Load Season Records
@@ -602,7 +607,10 @@ object SaveGameManager {
                             createdWeek = oObj.optInt("createdWeek", 1),
                             expiresInWeeks = oObj.optInt("expiresInWeeks", 2),
                             isDeadlineDeal = oObj.optBoolean("isDeadlineDeal", false),
-                            scoutNote = oObj.optString("scoutNote", "")
+                            scoutNote = oObj.optString("scoutNote", ""),
+                            buyingClubCountry = oObj.optString("buyingClubCountry", "Việt Nam"),
+                            isWorkPermitApproved = oObj.optBoolean("isWorkPermitApproved", true),
+                            workPermitNote = oObj.optString("workPermitNote").ifEmpty { null }
                         )
                     )
                 }

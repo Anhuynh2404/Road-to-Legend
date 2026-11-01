@@ -39,10 +39,13 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material.icons.filled.Widgets
 import com.example.roadtolegend.ui.components.ContractNegotiationDialog
 import com.example.roadtolegend.ui.screens.AgentScreen
+import com.example.roadtolegend.ui.screens.CareerStatsScreen
 import com.example.roadtolegend.ui.screens.ContractScreen
 import com.example.roadtolegend.ui.screens.FinanceScreen
+import com.example.roadtolegend.ui.screens.MoreMenuScreen
 import com.example.roadtolegend.ui.screens.NewsScreen
 import com.example.roadtolegend.ui.screens.TransferScreen
 import com.example.roadtolegend.ui.screens.CharacterCreationScreen
@@ -114,15 +117,45 @@ fun MainAppContainer(viewModel: CareerViewModel) {
         }
     }
 
+    val isMoreGroup = currentTab in listOf(
+        MainTab.MORE,
+        MainTab.CAREER_STATS,
+        MainTab.CONTRACT,
+        MainTab.TRANSFER,
+        MainTab.AGENT,
+        MainTab.FINANCE,
+        MainTab.SHOP,
+        MainTab.NEWS,
+        MainTab.PROFILE_SAVE
+    )
+
     // Xử lý nút Back của hệ thống
     BackHandler(enabled = currentScreen != AppScreen.WELCOME) {
         if (currentScreen == AppScreen.CREATION) {
             viewModel.navigateTo(AppScreen.WELCOME)
         } else if (currentScreen == AppScreen.MAIN_HUB) {
-            if (currentTab != MainTab.DASHBOARD) {
-                viewModel.selectTab(MainTab.DASHBOARD)
-            } else {
-                viewModel.navigateTo(AppScreen.WELCOME)
+            when {
+                currentTab in listOf(
+                    MainTab.CAREER_STATS,
+                    MainTab.CONTRACT,
+                    MainTab.TRANSFER,
+                    MainTab.AGENT,
+                    MainTab.FINANCE,
+                    MainTab.SHOP,
+                    MainTab.NEWS,
+                    MainTab.PROFILE_SAVE
+                ) -> {
+                    // Nếu đang ở màn hình con của mục Thêm, quay lại More Menu
+                    viewModel.selectTab(MainTab.MORE)
+                }
+                currentTab != MainTab.DASHBOARD -> {
+                    // Nếu đang ở bất kỳ tab chính nào khác, quay lại Trang chủ
+                    viewModel.selectTab(MainTab.DASHBOARD)
+                }
+                else -> {
+                    // Đang ở Dashboard -> quay lại WelcomeScreen
+                    viewModel.navigateTo(AppScreen.WELCOME)
+                }
             }
         }
     }
@@ -142,6 +175,7 @@ fun MainAppContainer(viewModel: CareerViewModel) {
         AppScreen.MAIN_HUB -> {
             val pendingOffersCount = careerState?.incomingOffers?.count { it.isPendingPlayerAction } ?: 0
             val unreadNewsCount = careerState?.newsFeed?.count { !it.isRead } ?: 0
+            val moreBadgeCount = pendingOffersCount + unreadNewsCount
 
             Scaffold(
                 containerColor = DarkBg,
@@ -151,11 +185,12 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                         containerColor = DarkSurface,
                         tonalElevation = 8.dp
                     ) {
+                        // 1. TRANG CHỦ
                         NavigationBarItem(
                             selected = currentTab == MainTab.DASHBOARD,
                             onClick = { viewModel.selectTab(MainTab.DASHBOARD) },
-                            icon = { Icon(Icons.Default.Dashboard, contentDescription = "Dashboard") },
-                            label = { Text("Tổng quan", fontSize = 10.sp) },
+                            icon = { Icon(Icons.Default.Dashboard, contentDescription = "Trang chủ") },
+                            label = { Text("Trang chủ", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = DarkBg,
                                 selectedTextColor = GoldPrimary,
@@ -165,67 +200,12 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             )
                         )
 
-                        NavigationBarItem(
-                            selected = currentTab == MainTab.TRANSFER,
-                            onClick = { viewModel.selectTab(MainTab.TRANSFER) },
-                            icon = {
-                                if (pendingOffersCount > 0) {
-                                    BadgedBox(
-                                        badge = {
-                                            Badge(containerColor = GoalCoral) {
-                                                Text("$pendingOffersCount")
-                                            }
-                                        }
-                                    ) {
-                                        Icon(Icons.Default.SwapHoriz, contentDescription = "Transfer")
-                                    }
-                                } else {
-                                    Icon(Icons.Default.SwapHoriz, contentDescription = "Transfer")
-                                }
-                            },
-                            label = { Text("Chuyển nhượng", fontSize = 9.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
-                                unselectedIconColor = TextMuted,
-                                unselectedTextColor = TextMuted
-                            )
-                        )
-
-                        NavigationBarItem(
-                            selected = currentTab == MainTab.CONTRACT,
-                            onClick = { viewModel.selectTab(MainTab.CONTRACT) },
-                            icon = { Icon(Icons.Default.Assignment, contentDescription = "Contract") },
-                            label = { Text("Hợp đồng", fontSize = 10.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
-                                unselectedIconColor = TextMuted,
-                                unselectedTextColor = TextMuted
-                            )
-                        )
-
-                        NavigationBarItem(
-                            selected = currentTab == MainTab.AGENT,
-                            onClick = { viewModel.selectTab(MainTab.AGENT) },
-                            icon = { Icon(Icons.Default.BusinessCenter, contentDescription = "Agent") },
-                            label = { Text("Đại diện", fontSize = 10.sp) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
-                                unselectedIconColor = TextMuted,
-                                unselectedTextColor = TextMuted
-                            )
-                        )
-
+                        // 2. TRẬN ĐẤU
                         NavigationBarItem(
                             selected = currentTab == MainTab.MATCHDAY,
                             onClick = { viewModel.selectTab(MainTab.MATCHDAY) },
-                            icon = { Icon(Icons.Default.SportsSoccer, contentDescription = "Matchday") },
-                            label = { Text("Trận đấu", fontSize = 10.sp) },
+                            icon = { Icon(Icons.Default.SportsSoccer, contentDescription = "Trận đấu") },
+                            label = { Text("Trận đấu", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = DarkBg,
                                 selectedTextColor = GoldPrimary,
@@ -235,25 +215,56 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             )
                         )
 
+                        // 3. TẬP LUYỆN
                         NavigationBarItem(
-                            selected = currentTab == MainTab.NEWS,
-                            onClick = { viewModel.selectTab(MainTab.NEWS) },
+                            selected = currentTab == MainTab.TRAINING,
+                            onClick = { viewModel.selectTab(MainTab.TRAINING) },
+                            icon = { Icon(Icons.Default.FitnessCenter, contentDescription = "Tập luyện") },
+                            label = { Text("Tập luyện", fontSize = 10.sp, maxLines = 1) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = DarkBg,
+                                selectedTextColor = GoldPrimary,
+                                indicatorColor = GoldPrimary,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            )
+                        )
+
+                        // 4. GIẢI ĐẤU (Bảng xếp hạng, Thống kê, CLB & Cầu thủ)
+                        NavigationBarItem(
+                            selected = currentTab == MainTab.LEAGUE_TABLE,
+                            onClick = { viewModel.selectTab(MainTab.LEAGUE_TABLE) },
+                            icon = { Icon(Icons.Default.Leaderboard, contentDescription = "Giải đấu") },
+                            label = { Text("Giải đấu", fontSize = 10.sp, maxLines = 1) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = DarkBg,
+                                selectedTextColor = GoldPrimary,
+                                indicatorColor = GoldPrimary,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            )
+                        )
+
+                        // 5. THÊM (Chứa các tính năng mở rộng: Sự nghiệp, Hợp đồng, Chuyển nhượng...)
+                        NavigationBarItem(
+                            selected = isMoreGroup,
+                            onClick = { viewModel.selectTab(MainTab.MORE) },
                             icon = {
-                                if (unreadNewsCount > 0) {
+                                if (moreBadgeCount > 0) {
                                     BadgedBox(
                                         badge = {
                                             Badge(containerColor = GoalCoral) {
-                                                Text("$unreadNewsCount")
+                                                Text("$moreBadgeCount")
                                             }
                                         }
                                     ) {
-                                        Icon(Icons.Default.Campaign, contentDescription = "News")
+                                        Icon(Icons.Default.Widgets, contentDescription = "Thêm")
                                     }
                                 } else {
-                                    Icon(Icons.Default.Campaign, contentDescription = "News")
+                                    Icon(Icons.Default.Widgets, contentDescription = "Thêm")
                                 }
                             },
-                            label = { Text("Tin tức", fontSize = 10.sp) },
+                            label = { Text("Thêm", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = DarkBg,
                                 selectedTextColor = GoldPrimary,
@@ -274,12 +285,6 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                     if (state != null) {
                         when (currentTab) {
                             MainTab.DASHBOARD -> DashboardScreen(careerState = state, viewModel = viewModel)
-                            MainTab.CONTRACT -> ContractScreen(careerState = state, viewModel = viewModel)
-                            MainTab.TRANSFER -> TransferScreen(careerState = state, viewModel = viewModel)
-                            MainTab.AGENT -> AgentScreen(careerState = state, viewModel = viewModel)
-                            MainTab.NEWS -> NewsScreen(careerState = state, viewModel = viewModel)
-                            MainTab.FINANCE -> FinanceScreen(careerState = state, viewModel = viewModel)
-                            MainTab.TRAINING -> TrainingScreen(careerState = state, viewModel = viewModel)
                             MainTab.MATCHDAY -> MatchScreen(
                                 careerState = state,
                                 viewModel = viewModel,
@@ -288,8 +293,16 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                                 visibleEvents = visibleEvents,
                                 isSimulating = isSimulating
                             )
-                            MainTab.SHOP -> LifestyleShopScreen(careerState = state, shopItems = shopItems, viewModel = viewModel)
+                            MainTab.TRAINING -> TrainingScreen(careerState = state, viewModel = viewModel)
                             MainTab.LEAGUE_TABLE -> LeagueTableScreen(careerState = state)
+                            MainTab.MORE -> MoreMenuScreen(careerState = state, viewModel = viewModel)
+                            MainTab.CAREER_STATS -> CareerStatsScreen(careerState = state, viewModel = viewModel)
+                            MainTab.CONTRACT -> ContractScreen(careerState = state, viewModel = viewModel)
+                            MainTab.TRANSFER -> TransferScreen(careerState = state, viewModel = viewModel)
+                            MainTab.AGENT -> AgentScreen(careerState = state, viewModel = viewModel)
+                            MainTab.NEWS -> NewsScreen(careerState = state, viewModel = viewModel)
+                            MainTab.FINANCE -> FinanceScreen(careerState = state, viewModel = viewModel)
+                            MainTab.SHOP -> LifestyleShopScreen(careerState = state, shopItems = shopItems, viewModel = viewModel)
                             MainTab.PROFILE_SAVE -> SaveProfileScreen(careerState = state, saveSlots = saveSlots, viewModel = viewModel)
                         }
                     } else {

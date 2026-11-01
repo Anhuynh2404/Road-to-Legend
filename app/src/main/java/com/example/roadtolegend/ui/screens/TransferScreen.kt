@@ -81,7 +81,22 @@ fun TransferScreen(
 ) {
     val currencyFormatter = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     var selectedSection by remember { mutableIntStateOf(0) } // 0: Hộp thư, 1: Thị trường AI, 2: Hành động
-    val pendingOffers = careerState.incomingOffers.filter { it.isPendingPlayerAction }
+    var selectedCountryFilter by remember { mutableStateOf("ALL") }
+    val allActiveOffers = careerState.incomingOffers.filter {
+        it.status == TransferOfferStatus.APPROVED_AWAITING_PLAYER ||
+        it.status == TransferOfferStatus.NEGOTIATING_PLAYER_TERMS ||
+        it.status == TransferOfferStatus.BLOCKED_WORK_PERMIT
+    }
+    val filteredOffers = allActiveOffers.filter { offer ->
+        when (selectedCountryFilter) {
+            "ALL" -> true
+            "VN" -> offer.buyingClubCountry == "Việt Nam"
+            "TH" -> offer.buyingClubCountry == "Thái Lan"
+            "KR" -> offer.buyingClubCountry == "Hàn Quốc"
+            "EU" -> offer.buyingClubCountry in listOf("Bồ Đào Nha", "Pháp", "Ý", "Đức", "Anh")
+            else -> true
+        }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -195,14 +210,14 @@ fun TransferScreen(
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Hộp thư đề nghị", fontSize = 12.sp)
-                            if (pendingOffers.isNotEmpty()) {
+                            if (allActiveOffers.isNotEmpty()) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Surface(
                                     color = GoalCoral,
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
                                     Text(
-                                        text = "${pendingOffers.size}",
+                                        text = "${allActiveOffers.size}",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
@@ -249,8 +264,82 @@ fun TransferScreen(
         // 4. Nội dung theo phân mục
         when (selectedSection) {
             0 -> {
+                // BỘ LỌC QUỐC GIA & GIẢI ĐẤU
+                item {
+                    androidx.compose.foundation.lazy.LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = selectedCountryFilter == "ALL",
+                                onClick = { selectedCountryFilter = "ALL" },
+                                label = { Text("Tất cả (${allActiveOffers.size})", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DarkSurfaceVariant,
+                                    selectedLabelColor = GoldLight,
+                                    containerColor = DarkSurface,
+                                    labelColor = TextMuted
+                                )
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedCountryFilter == "VN",
+                                onClick = { selectedCountryFilter = "VN" },
+                                label = { Text("Việt Nam 🇻🇳", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DarkSurfaceVariant,
+                                    selectedLabelColor = GoldLight,
+                                    containerColor = DarkSurface,
+                                    labelColor = TextMuted
+                                )
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedCountryFilter == "TH",
+                                onClick = { selectedCountryFilter = "TH" },
+                                label = { Text("Thái Lan 🇹🇭", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DarkSurfaceVariant,
+                                    selectedLabelColor = GoldLight,
+                                    containerColor = DarkSurface,
+                                    labelColor = TextMuted
+                                )
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedCountryFilter == "KR",
+                                onClick = { selectedCountryFilter = "KR" },
+                                label = { Text("Hàn Quốc 🇰🇷", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DarkSurfaceVariant,
+                                    selectedLabelColor = GoldLight,
+                                    containerColor = DarkSurface,
+                                    labelColor = TextMuted
+                                )
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedCountryFilter == "EU",
+                                onClick = { selectedCountryFilter = "EU" },
+                                label = { Text("Châu Âu 🇪🇺", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DarkSurfaceVariant,
+                                    selectedLabelColor = GoldLight,
+                                    containerColor = DarkSurface,
+                                    labelColor = TextMuted
+                                )
+                            )
+                        }
+                    }
+                }
+
                 // HỘP THƯ LỜI ĐỀ NGHỊ
-                if (pendingOffers.isEmpty()) {
+                if (filteredOffers.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -266,10 +355,10 @@ fun TransferScreen(
                             ) {
                                 Icon(Icons.Default.Mail, contentDescription = null, tint = TextMuted, modifier = Modifier.size(36.dp))
                                 Spacer(modifier = Modifier.height(10.dp))
-                                Text("Chưa có lời đề nghị nào đang chờ phản hồi", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("Chưa có lời đề nghị nào phù hợp bộ lọc", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "Hãy thi đấu xuất sắc, cải thiện OVR và thuê người đại diện cấp cao để nhận thêm nhiều lời mời gọi hấp dẫn trong kỳ chuyển nhượng.",
+                                    "Hãy thi đấu xuất sắc, cải thiện OVR và thuê người đại diện cấp cao để nhận thêm nhiều lời mời gọi hấp dẫn trong và ngoài nước.",
                                     fontSize = 11.sp,
                                     color = TextSecondary,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -279,13 +368,18 @@ fun TransferScreen(
                         }
                     }
                 } else {
-                    items(pendingOffers.size) { index ->
-                        val offer = pendingOffers[index]
+                    items(filteredOffers.size) { index ->
+                        val offer = filteredOffers[index]
+                        val isBlocked = !offer.isWorkPermitApproved || offer.status == TransferOfferStatus.BLOCKED_WORK_PERMIT
+
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = DarkSurface),
                             shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.6f))
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isBlocked) GoalCoral.copy(alpha = 0.7f) else GoldPrimary.copy(alpha = 0.6f)
+                            )
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
@@ -294,23 +388,48 @@ fun TransferScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = if (offer.isLoan) "ĐỀ NGHỊ MƯỢN CẦU THỦ" else "ĐỀ NGHỊ MUA ĐỨT",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = if (offer.isLoan) WarningAmber else PitchGreen
-                                            )
+                                            if (isBlocked) {
+                                                Surface(
+                                                    color = GoalCoral.copy(alpha = 0.2f),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        "⛔ BỊ CHẶN: GIẤY PHÉP LAO ĐỘNG",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        color = GoalCoral,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            } else {
+                                                Text(
+                                                    text = if (offer.isLoan) "ĐỀ NGHỊ MƯỢN CẦU THỦ" else "ĐỀ NGHỊ MUA ĐỨT",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = if (offer.isLoan) WarningAmber else PitchGreen
+                                                )
+                                            }
+
                                             if (offer.isDeadlineDeal) {
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text("🔥 DEADLINE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GoalCoral)
                                             }
                                         }
-                                        Text(
-                                            text = offer.buyingClubName,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary
-                                        )
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = offer.countryFlagEmoji,
+                                                fontSize = 18.sp
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "${offer.buyingClubName} (${offer.buyingClubCountry})",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextPrimary
+                                            )
+                                        }
                                     }
 
                                     Surface(
@@ -371,6 +490,33 @@ fun TransferScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
+                                // Cảnh báo giấy phép lao động nếu bị chặn
+                                if (isBlocked) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = GoalCoral.copy(alpha = 0.12f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, GoalCoral.copy(alpha = 0.4f))
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp)) {
+                                            Text(
+                                                text = "LÝ DO TỪ CHỐI THỊ THỰC / GIẤY PHÉP LAO ĐỘNG:",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = GoalCoral
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = offer.workPermitNote ?: "Cầu thủ chưa đáp ứng đủ tiêu chuẩn thị thực thể thao chuyên nghiệp của quốc gia này.",
+                                                fontSize = 11.sp,
+                                                color = TextPrimary,
+                                                lineHeight = 15.sp
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+
                                 // Lời nhắn trinh sát
                                 Text(
                                     text = "Ghi chú: ${offer.scoutNote}",
@@ -386,7 +532,29 @@ fun TransferScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    if (!offer.isLoan) {
+                                    if (isBlocked) {
+                                        Button(
+                                            onClick = { },
+                                            enabled = false,
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(
+                                                disabledContainerColor = DarkSurfaceVariant,
+                                                disabledContentColor = TextMuted
+                                            ),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("KHÔNG THỂ CHUYỂN NHƯỢNG", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { viewModel.rejectTransferOffer(offer) },
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("XÓA ĐỀ NGHỊ", fontSize = 11.sp, color = GoalCoral)
+                                        }
+                                    } else if (!offer.isLoan) {
                                         Button(
                                             onClick = { viewModel.startOfferNegotiation(offer) },
                                             modifier = Modifier.weight(1f),
@@ -408,6 +576,15 @@ fun TransferScreen(
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text("ĐỒNG Ý", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }
+
+                                        OutlinedButton(
+                                            onClick = { viewModel.rejectTransferOffer(offer) },
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("TỪ CHỐI", fontSize = 11.sp, color = GoalCoral)
+                                        }
                                     } else {
                                         Button(
                                             onClick = { viewModel.acceptLoanOffer(offer) },
@@ -419,15 +596,15 @@ fun TransferScreen(
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text("ĐỒNG Ý ĐI MƯỢN", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }
-                                    }
 
-                                    OutlinedButton(
-                                        onClick = { viewModel.rejectTransferOffer(offer) },
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("TỪ CHỐI", fontSize = 11.sp, color = GoalCoral)
+                                        OutlinedButton(
+                                            onClick = { viewModel.rejectTransferOffer(offer) },
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("TỪ CHỐI", fontSize = 11.sp, color = GoalCoral)
+                                        }
                                     }
                                 }
                             }
@@ -603,6 +780,83 @@ fun TransferScreen(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text("YÊU CẦU ĐI MƯỢN ĐỂ RA SÂN", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Public, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("XUẤT NGOẠI: NHỜ AGENT THĂM DÒ THỊ TRƯỜNG QUỐC TẾ", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoldLight)
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Bạn có thể chỉ thị người đại diện (${careerState.agent.name}) sử dụng mạng lưới quan hệ để tiếp cận các CLB nước ngoài. Cơ hội nhận đề nghị phụ thuộc vào OVR (${careerState.player.ovr}), Danh tiếng toàn cầu (${careerState.player.globalReputation}), cấp bậc Agent (${careerState.agent.tier.titleVi}) và điều kiện Giấy phép lao động của từng quốc gia.",
+                                fontSize = 11.sp,
+                                color = TextSecondary,
+                                lineHeight = 15.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = { viewModel.scoutForeignMarket("THAI_LEAGUE") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                        Text("🇹🇭 Thăm dò Đông Nam Á (Thai League 1)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Hạn ngạch ASEAN", fontSize = 10.sp, color = PitchGreen)
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.scoutForeignMarket("K_LEAGUE") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                        Text("🇰🇷 Thăm dò Đông Á (K League 1)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Suất Ngoại Binh Châu Á", fontSize = 10.sp, color = WarningAmber)
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.scoutForeignMarket("PRIMEIRA_LIGA") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                        Text("🇵🇹 Thăm dò Cửa ngõ Châu Âu (Liga Portugal)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Thị Thực Non-EU", fontSize = 10.sp, color = GoldLight)
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.scoutForeignMarket("EUROPE_TOP5") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant, contentColor = TextPrimary),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                        Text("🇪🇺 Thăm dò Top 5 Châu Âu (Anh, Đức, Ý, Pháp)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Tiêu chuẩn GBE / Đẳng cấp cao", fontSize = 10.sp, color = GoalCoral)
+                                    }
+                                }
                             }
                         }
                     }

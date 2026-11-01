@@ -117,21 +117,22 @@ object TransferConfig {
         playerOvr: Int,
         playerReputation: Int,
         clubTier: Int,
-        clubBudget: Long
+        clubBudget: Long,
+        clubReputation: Int = 50
     ): Long {
         val baseTierWage = when (clubTier) {
-            1 -> 3_500L  // V-League 1 / Ngoại Hạng Anh
-            2 -> 800L    // V-League 2 / Championship
+            1 -> 3_000L + (clubReputation * 30L)
+            2 -> 800L + (clubReputation * 15L)
             else -> 400L
         }
 
-        val ovrMultiplier = Math.pow((playerOvr / 55.0), 3.2)
-        val repBonus = 1.0 + (playerReputation * 0.006)
+        val ovrMultiplier = Math.pow((playerOvr / 55.0), 3.3)
+        val repBonus = 1.0 + (playerReputation * 0.007)
         val rawWage = (baseTierWage * ovrMultiplier * repBonus).toLong()
 
         // Giới hạn trong khả năng chi trả của ngân sách CLB
-        val maxAffordableWage = (clubBudget / 60).coerceAtLeast(250L)
-        return rawWage.coerceIn(200L, maxAffordableWage)
+        val maxAffordableWage = (clubBudget / 50).coerceAtLeast(300L)
+        return rawWage.coerceIn(250L, maxAffordableWage)
     }
 
     // =========================================================================

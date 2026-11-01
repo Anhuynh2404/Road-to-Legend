@@ -56,7 +56,11 @@ object SquadDatabase {
                 preferredFoot = userPlayer.preferredFoot,
                 heightCm = userPlayer.heightCm,
                 avatarResName = "player_user",
-                isUser = true
+                isUser = true,
+                matchesPlayed = userPlayer.careerStats.matchesPlayed,
+                goals = userPlayer.careerStats.goals,
+                assists = userPlayer.careerStats.assists,
+                customAvatarPath = userPlayer.customAvatarPath
             )
             return listOf(userAsClubPlayer) + baseSquad.filter { it.id != userPlayer.id }
         }

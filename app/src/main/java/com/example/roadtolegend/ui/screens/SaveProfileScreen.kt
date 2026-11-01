@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,7 +36,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
+import com.example.roadtolegend.data.AvatarManager
+import com.example.roadtolegend.ui.components.AvatarSelectionDialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +79,19 @@ fun SaveProfileScreen(
     viewModel: CareerViewModel,
     modifier: Modifier = Modifier
 ) {
+    var showAvatarDialog by remember { mutableStateOf(false) }
+
+    if (showAvatarDialog && careerState != null) {
+        AvatarSelectionDialog(
+            playerId = careerState.player.id,
+            currentAvatarPath = careerState.player.customAvatarPath,
+            onAvatarSelected = { newPath ->
+                viewModel.updatePlayerAvatar(newPath)
+            },
+            onDismiss = { showAvatarDialog = false }
+        )
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -73,6 +99,105 @@ fun SaveProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Thẻ thông tin đại diện cầu thủ & nút đổi ảnh
+        if (careerState != null) {
+            val player = careerState.player
+
+            item {
+                val customBitmap = remember(player.customAvatarPath) { AvatarManager.loadBitmapFromFile(player.customAvatarPath) }
+                val preset = remember(player.customAvatarPath) { AvatarManager.getPresetById(player.customAvatarPath) }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(16.dp),
+                    border = CardDefaults.outlinedCardBorder()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .clickable { showAvatarDialog = true }
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(GoldPrimary.copy(alpha = 0.4f), DarkSurfaceVariant)
+                                    )
+                                )
+                                .border(2.dp, GoldPrimary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when {
+                                customBitmap != null -> {
+                                    Image(
+                                        bitmap = customBitmap.asImageBitmap(),
+                                        contentDescription = "Avatar cầu thủ",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                preset != null -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(preset.themeColor, preset.accentColor)
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = preset.icon,
+                                            contentDescription = preset.name,
+                                            tint = androidx.compose.ui.graphics.Color.White,
+                                            modifier = Modifier.size(34.dp)
+                                        )
+                                    }
+                                }
+                                else -> {
+                                    Text("★", fontSize = 28.sp, fontWeight = FontWeight.Black, color = GoldPrimary)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = player.name,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Black,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "${player.age} tuổi • ${player.primaryPosition.fullNameVi} • OVR ${player.ovr}",
+                                fontSize = 11.sp,
+                                color = TextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(
+                                onClick = { showAvatarDialog = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = DarkBg, modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Đổi ảnh đại diện", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DarkBg)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 1. Thống kê tổng quan và Cột mốc sự nghiệp
         if (careerState != null) {
             val stats = careerState.player.careerStats

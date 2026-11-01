@@ -54,12 +54,31 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.roadtolegend.ui.components.AvatarSelectionDialog
+
 @Composable
 fun DashboardScreen(
     careerState: CareerState,
     viewModel: CareerViewModel,
     modifier: Modifier = Modifier
 ) {
+    var showAvatarDialog by remember { mutableStateOf(false) }
+
+    if (showAvatarDialog) {
+        AvatarSelectionDialog(
+            playerId = careerState.player.id,
+            currentAvatarPath = careerState.player.customAvatarPath,
+            onAvatarSelected = { newPath ->
+                viewModel.updatePlayerAvatar(newPath)
+            },
+            onDismiss = { showAvatarDialog = false }
+        )
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -233,7 +252,8 @@ fun DashboardScreen(
         item {
             FUTPlayerCard(
                 player = careerState.player,
-                club = careerState.currentClub
+                club = careerState.currentClub,
+                onAvatarClick = { showAvatarDialog = true }
             )
         }
 
