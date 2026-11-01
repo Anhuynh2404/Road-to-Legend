@@ -1,0 +1,6 @@
+{
+  "name": "Road to Legend",
+  "description": "Football Player Career text-based simulation game where you build your career from lower leagues to world football legend.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
