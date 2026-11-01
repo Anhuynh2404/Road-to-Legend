@@ -97,31 +97,58 @@ Toàn bộ công thức và hằng số vận hành được gom gọn trong `co
   - Nếu Fatigue $\ge 50$, nguy cơ chấn thương tăng thêm $8\%$.
 
 ---
+1. Thêm CLB và Giải đấu mới (DefaultDatabase.kt)
+Mở file app/src/main/java/com/example/roadtolegend/data/DefaultDatabase.kt:
+Tạo hàm danh sách CLB:
+code
+Kotlin
+fun createSpanishLaLigaClubs(): List<Club> = listOf(
+    Club(
+        id = "es_real_madrid",
+        name = "Real Madrid CF",
+        shortName = "Real Madrid",
+        country = "Tây Ban Nha",
+        leagueId = "la_liga",
+        tier = 1,
+        reputation = 95,
+        budget = 120_000_000,
+        trainingFacilityLevel = 5,
+        coachQuality = 5,
+        squadOvrAverage = 87,
+        primaryColorHex = "#FFFFFF",
+        secondaryColorHex = "#FEBE10",
+        keyPlayers = listOf("Vinicius Jr", "Jude Bellingham", "Kylian Mbappe"),
+        fictionalName = "Kền Kền Trắng",
+        fictionalShortName = "Madrid"
+    )
+)
+Khai báo vào getAllClubs():
+Thêm + createSpanishLaLigaClubs() vào hàm getAllClubs().
+Khai báo vào initializeLeague(leagueId):
+Thêm nhánh "la_liga" -> Quadruple("La Liga", "Tây Ban Nha", 1, createSpanishLaLigaClubs()) vào when (leagueId).
+2. Thêm cầu thủ thủ công & ảnh đại diện (SquadDatabase.kt)
+Mở file app/src/main/java/com/example/roadtolegend/data/SquadDatabase.kt:
+Tìm đến baseSquadsByClub và thêm danh sách cầu thủ của CLB:
+code
+Kotlin
+"es_real_madrid" to listOf(
+    ClubPlayer(
+        id = "es_courtois",
+        name = "Thibaut Courtois",
+        clubId = "es_real_madrid",
+        number = 1,
+        age = 32,
+        nationality = "Bỉ",
+        nationalityCode = "BE",
+        position = Position.GK,
+        ovr = 89, pac = 46, sho = 20, pas = 74, dri = 50, def = 89, phy = 88,
+        marketValue = 40_000_000,
+        weeklyWage = 250_000,
+        preferredFoot = Foot.LEFT,
+        heightCm = 200,
+        avatarResName = "player_courtois" // Đặt file ảnh player_courtois.png vào app/src/main/res/drawable/
+    )
+)
+(Nếu chưa có ảnh trong drawable, hệ thống tự động sinh Avatar Vector theo số áo và màu áo CLB).
 
-## 4. CHECKLIST KIỂM THỬ THỰC TẾ TRÊN EMULATOR
 
-1. **Khởi tạo nhân vật (Character Creation):**
-   - [ ] Tạo nhân vật mới với vị trí ST hoặc CAM.
-   - [ ] Kiểm tra phân bổ điểm OVR ban đầu.
-   - [ ] Chọn CLB khởi điểm tại V-League 2 (ví dụ: Bình Phước, PVF-CAND, SHB Đà Nẵng).
-2. **Kế hoạch tập luyện (Training Tab):**
-   - [ ] Chọn các cường độ: Nhẹ, Vừa, Nặng.
-   - [ ] Quan sát chi phí tiền tệ và dự kiến điểm tăng nhảy tương ứng.
-   - [ ] Kiểm tra khi số dư tài khoản không đủ tiền thì nút tập bị vô hiệu hóa kèm cảnh báo.
-   - [ ] Tiến hành tuần tập và quan sát thông báo tóm tắt chỉ số tăng / chi phí bị trừ / chỉ số thể lực thay đổi.
-3. **Màn hình thi đấu (Matchday Tab):**
-   - [ ] Bấm "Bắt đầu trận đấu" và chọn các tốc độ: Chậm, Vừa, Nhanh.
-   - [ ] Bấm "Bỏ qua" (Skip) để xem kết quả tức thì.
-   - [ ] Kiểm tra bảng điểm số: Tuyệt đối không bao giờ bị giảm điểm hoặc nhảy lùi.
-   - [ ] Quan sát sự kiện diễn biến trực tiếp (Commentary) với thẻ vàng, cơ hội, bàn thắng hiển thị mượt mà.
-   - [ ] Quan sát danh sách các trận đấu khác cùng vòng đấu (Round Fixtures) hiển thị kết quả và cầu thủ ghi bàn trực tiếp.
-   - [ ] Xem bảng thống kê sau trận đấu (Tỉ lệ sút bóng, phạt góc, cầu thủ xuất sắc nhất MOM, điểm số cá nhân 1-10).
-4. **Bảng xếp hạng & Thống kê (League Table Tab):**
-   - [ ] Kiểm tra cột "5 TRẬN" hiển thị 5 chấm phong độ (Xanh Thắng, Vàng Hòa, Đỏ Thua).
-   - [ ] Chuyển tab sang "THỐNG KÊ GIẢI ĐẤU" để kiểm tra danh sách Vua phá lưới (Top Scorers) và Vua kiến tạo (Top Assists).
-   - [ ] Kiểm tra tên của người chơi tự động đồng bộ và xếp hạng chính xác theo số bàn thắng/kiến tạo thực tế.
-5. **Hồ sơ sự nghiệp & Cài đặt (Profile & Save Tab):**
-   - [ ] Kiểm tra bảng "LỊCH SỬ THI ĐẤU QUA CÁC MÙA GIẢI" lưu trữ chi tiết số trận, bàn thắng, kiến tạo, MOM của từng mùa.
-   - [ ] Kiểm tra danh sách Cột mốc vinh quang (Milestones) mở khóa khi đạt thành tích (Trận đầu tiên, Bàn thắng đầu tiên, Cú đúp/Hat-trick, Danh hiệu MOM).
-   - [ ] Thử bật/tắt chế độ "Tên câu lạc bộ giả định" (Fictional Mode) và "Tình huống tương tác trong trận".
-   - [ ] Thử Lưu vào Vị trí #1 và Tải lại để kiểm tra tính toàn vẹn của dữ liệu lưu trữ.

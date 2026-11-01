@@ -349,7 +349,9 @@ object InternationalTransferRules {
             isLoan = false,
             createdWeek = state.currentWeek,
             expiresInWeeks = 2,
-            scoutNote = "Sau buổi làm việc với đại diện ${agent.name}, ${targetClub.name} đã chính thức phê duyệt hồ sơ giấy phép lao động và gửi hợp đồng chuyển nhượng!"
+            scoutNote = "Sau buổi làm việc với đại diện ${agent.name}, ${targetClub.name} đã chính thức phê duyệt hồ sơ giấy phép lao động và gửi hợp đồng chuyển nhượng!",
+            buyingClubCountry = targetClub.country,
+            isWorkPermitApproved = true
         )
 
         state.incomingOffers.add(0, offer)

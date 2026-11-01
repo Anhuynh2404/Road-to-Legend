@@ -35,7 +35,7 @@ object SaveGameManager {
 
     private const val PREF_NAME = "road_to_legend_saves"
 
-    fun saveGame(context: Context, slot: Int, state: CareerState): Boolean {
+    fun serializeState(state: CareerState): String {
         return try {
             val json = JSONObject()
             json.put("seasonNumber", state.seasonNumber)
@@ -332,9 +332,20 @@ object SaveGameManager {
             }
             json.put("newsFeed", newsArray)
 
-            val file = File(context.filesDir, "save_slot_$slot.json")
-            file.writeText(json.toString())
+            return json.toString()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return "{}"
+        }
+    }
 
+    fun saveGame(context: Context, slot: Int, state: CareerState): Boolean {
+        return try {
+            val jsonString = serializeState(state)
+            val file = File(context.filesDir, "save_slot_$slot.json")
+            file.writeText(jsonString)
+
+            val p = state.player
             val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
             prefs.edit()
                 .putString("slot_${slot}_summary", "${p.name}|${p.ovr}|${p.primaryPosition.code}|${state.currentClub.shortName}|Mùa ${state.seasonNumber} - Tuần ${state.currentWeek}")
@@ -352,7 +363,15 @@ object SaveGameManager {
         return try {
             val file = File(context.filesDir, "save_slot_$slot.json")
             if (!file.exists()) return null
-            val content = file.readText()
+            deserializeState(file.readText())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun deserializeState(content: String): CareerState? {
+        return try {
             val json = JSONObject(content)
 
             val pObj = json.getJSONObject("player")
