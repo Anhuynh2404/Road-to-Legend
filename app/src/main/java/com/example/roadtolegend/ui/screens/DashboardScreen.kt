@@ -54,6 +54,15 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.BusinessCenter
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.ui.theme.WarningAmber
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -391,79 +400,132 @@ fun DashboardScreen(
         // 5. Lối tắt Quản lý sự nghiệp (Career Management Hub)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text("LỐI TẮT TRUNG TÂM SỰ NGHIỆP", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GoldLight)
-                Spacer(modifier = Modifier.height(10.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(
-                        onClick = { viewModel.selectTab(MainTab.CONTRACT) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Text("📄 Hợp đồng", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = { viewModel.selectTab(MainTab.TRANSFER) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Text("🔄 Chuyển nhượng", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = { viewModel.selectTab(MainTab.AGENT) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Text("👔 Đại diện", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                    Text(
+                        text = "LỐI TẮT TRUNG TÂM SỰ NGHIỆP",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        color = GoldLight,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = "Xem tất cả",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GoldPrimary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { viewModel.selectTab(MainTab.MORE) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
+                val unreadNewsCount = careerState.newsFeed.count { !it.isRead }
+                val contractWeeksLeft = careerState.currentContract.totalWeeksRemaining
+                val isExpiring = careerState.currentContract.isExpiringSoon
+
+                // Hàng 1: Hợp đồng & Chuyển nhượng
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
-                        onClick = { viewModel.selectTab(MainTab.NEWS) },
+                    CareerHubShortcutCard(
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Text("📰 Tin tức", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                        title = "Hợp đồng",
+                        subtitle = "Lương & Điều khoản",
+                        badgeText = if (isExpiring) "Hết hạn ${contractWeeksLeft}w" else "Còn ${contractWeeksLeft} tuần",
+                        badgeColor = if (isExpiring) GoalCoral else PitchGreen,
+                        icon = Icons.Default.Assignment,
+                        iconTint = PitchGreen,
+                        onClick = { viewModel.selectTab(MainTab.CONTRACT) }
+                    )
 
-                    Button(
-                        onClick = { viewModel.selectTab(MainTab.FINANCE) },
+                    CareerHubShortcutCard(
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Text("💰 Tài chính", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                        title = "Chuyển nhượng",
+                        subtitle = "Thị trường & Đề nghị",
+                        badgeText = when {
+                            pendingOffersCount > 0 -> "$pendingOffersCount đề nghị"
+                            careerState.isDeadlineDay -> "Deadline Day"
+                            careerState.isTransferWindowOpen -> "Cửa sổ mở"
+                            else -> "Đang đóng"
+                        },
+                        badgeColor = when {
+                            pendingOffersCount > 0 -> GoalCoral
+                            careerState.isDeadlineDay -> GoldPrimary
+                            careerState.isTransferWindowOpen -> PitchGreen
+                            else -> TextMuted
+                        },
+                        icon = Icons.Default.SwapHoriz,
+                        iconTint = Color(0xFF42A5F5),
+                        onClick = { viewModel.selectTab(MainTab.TRANSFER) }
+                    )
+                }
 
-                    Button(
-                        onClick = { viewModel.selectTab(MainTab.TRAINING) },
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Hàng 2: Người đại diện & Tin tức 24h
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CareerHubShortcutCard(
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkSurface, contentColor = TextPrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Text("🏋️ Tập luyện", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                        title = "Người đại diện",
+                        subtitle = careerState.agent.name,
+                        badgeText = careerState.agent.tier.titleVi.take(10),
+                        badgeColor = Color(0xFFFFB74D),
+                        icon = Icons.Default.BusinessCenter,
+                        iconTint = Color(0xFFFFB74D),
+                        onClick = { viewModel.selectTab(MainTab.AGENT) }
+                    )
+
+                    CareerHubShortcutCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Tin tức & Báo chí",
+                        subtitle = "Tin đồn & Truyền thông",
+                        badgeText = if (unreadNewsCount > 0) "$unreadNewsCount tin mới" else "Cập nhật",
+                        badgeColor = if (unreadNewsCount > 0) GoalCoral else TextMuted,
+                        icon = Icons.Default.Campaign,
+                        iconTint = Color(0xFFFF7043),
+                        onClick = { viewModel.selectTab(MainTab.NEWS) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Hàng 3: Tài chính & Kế hoạch tập luyện
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CareerHubShortcutCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Tài chính",
+                        subtitle = "Ví & Thu chi",
+                        badgeText = "€${String.format("%,d", careerState.player.balance)}",
+                        badgeColor = GoldPrimary,
+                        icon = Icons.Default.AccountBalanceWallet,
+                        iconTint = GoldPrimary,
+                        onClick = { viewModel.selectTab(MainTab.FINANCE) }
+                    )
+
+                    CareerHubShortcutCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Tập luyện",
+                        subtitle = "Chỉ số & Thể lực",
+                        badgeText = "Tập ${careerState.selectedTrainingFocus.targetStatName}",
+                        badgeColor = Color(0xFFAB47BC),
+                        icon = Icons.Default.SportsSoccer,
+                        iconTint = Color(0xFFAB47BC),
+                        onClick = { viewModel.selectTab(MainTab.TRAINING) }
+                    )
                 }
             }
         }
@@ -524,5 +586,90 @@ fun DashboardScreen(
 
         // Khoảng trống dưới cùng
         item { Spacer(modifier = Modifier.height(20.dp)) }
+    }
+}
+
+@Composable
+private fun CareerHubShortcutCard(
+    title: String,
+    subtitle: String,
+    badgeText: String,
+    badgeColor: Color,
+    icon: ImageVector,
+    iconTint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        border = BorderStroke(1.dp, DarkCardBorder)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(iconTint.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = iconTint,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = badgeColor.copy(alpha = 0.16f),
+                    border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = badgeText,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = title,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = subtitle,
+                fontSize = 10.5.sp,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }

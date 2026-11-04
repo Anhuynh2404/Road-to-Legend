@@ -164,7 +164,10 @@ object DefaultDatabase {
         Club("vn_binh_duong", "Becamex Bình Dương", "Bình Dương", "Việt Nam", "vleague_1", 1, 48, 450_000, 3, 3, 66, "#00838F", "#FFFFFF", listOf("Nguyễn Tiến Linh", "Quế Ngọc Hải", "Võ Hoàng Minh Khoa"), "Đất Thủ Xanh", "Bình Dương FC"),
         Club("vn_slna", "Sông Lam Nghệ An", "SLNA", "Việt Nam", "vleague_1", 1, 46, 300_000, 3, 3, 64, "#FBC02D", "#000000", listOf("Trần Đình Hoàng", "Đinh Xuân Tiến", "Trần Mạnh Quỳnh"), "Sứ Nghệ Vàng", "SLNA FC"),
         Club("vn_hagl", "Hoàng Anh Gia Lai", "HAGL", "Việt Nam", "vleague_1", 1, 50, 350_000, 3, 3, 65, "#FFFFFF", "#1E88E5", listOf("Trần Minh Vương", "Châu Ngọc Quang", "Dụng Quang Nho"), "Phố Núi Trắng", "HAGL FC"),
-        Club("vn_hai_phong", "Hải Phòng FC", "Hải Phòng", "Việt Nam", "vleague_1", 1, 45, 300_000, 3, 3, 63, "#D32F2F", "#FFFFFF", listOf("Triệu Việt Hưng", "Lương Hoàng Nam", "Nguyễn Đình Triệu"), "Hoa Phượng Đỏ", "Hải Phòng FC")
+        Club("vn_hai_phong", "Hải Phòng FC", "Hải Phòng", "Việt Nam", "vleague_1", 1, 45, 300_000, 3, 3, 63, "#D32F2F", "#FFFFFF", listOf("Triệu Việt Hưng", "Lương Hoàng Nam", "Nguyễn Đình Triệu"), "Hoa Phượng Đỏ", "Hải Phòng FC"),
+        Club("vn_thanh_hoa", "Đông Á Thanh Hóa", "Thanh Hóa", "Việt Nam", "vleague_1", 1, 52, 400_000, 3, 4, 66, "#FFD600", "#1E88E5", listOf("Rimario Gordon", "Gustavo Santos", "Doãn Ngọc Tân", "Nguyễn Thái Sơn"), "Chiến Binh Xứ Thanh", "Thanh Hóa FC"),
+        Club("vn_tphcm", "CLB TP. Hồ Chí Minh", "TP.HCM", "Việt Nam", "vleague_1", 1, 48, 420_000, 3, 3, 65, "#D32F2F", "#1A237E", listOf("Võ Huy Toàn", "Patrik Lê Giang", "Hồ Tuấn Tài"), "Chiến Hạm Đỏ", "TP.HCM FC"),
+        Club("vn_da_nang", "SHB Đà Nẵng", "Đà Nẵng", "Việt Nam", "vleague_1", 1, 47, 350_000, 3, 3, 64, "#FF9800", "#1565C0", listOf("Phan Văn Long", "Đặng Anh Tuấn", "Nguyễn Phi Hoàng"), "Sông Hàn Cam", "Đà Nẵng FC")
     )
 
     fun createChampionshipClubs(): List<Club> = listOf(

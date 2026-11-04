@@ -97,58 +97,10 @@ Toàn bộ công thức và hằng số vận hành được gom gọn trong `co
   - Nếu Fatigue $\ge 50$, nguy cơ chấn thương tăng thêm $8\%$.
 
 ---
-1. Thêm CLB và Giải đấu mới (DefaultDatabase.kt)
-Mở file app/src/main/java/com/example/roadtolegend/data/DefaultDatabase.kt:
-Tạo hàm danh sách CLB:
-code
-Kotlin
-fun createSpanishLaLigaClubs(): List<Club> = listOf(
-    Club(
-        id = "es_real_madrid",
-        name = "Real Madrid CF",
-        shortName = "Real Madrid",
-        country = "Tây Ban Nha",
-        leagueId = "la_liga",
-        tier = 1,
-        reputation = 95,
-        budget = 120_000_000,
-        trainingFacilityLevel = 5,
-        coachQuality = 5,
-        squadOvrAverage = 87,
-        primaryColorHex = "#FFFFFF",
-        secondaryColorHex = "#FEBE10",
-        keyPlayers = listOf("Vinicius Jr", "Jude Bellingham", "Kylian Mbappe"),
-        fictionalName = "Kền Kền Trắng",
-        fictionalShortName = "Madrid"
-    )
-)
-Khai báo vào getAllClubs():
-Thêm + createSpanishLaLigaClubs() vào hàm getAllClubs().
-Khai báo vào initializeLeague(leagueId):
-Thêm nhánh "la_liga" -> Quadruple("La Liga", "Tây Ban Nha", 1, createSpanishLaLigaClubs()) vào when (leagueId).
-2. Thêm cầu thủ thủ công & ảnh đại diện (SquadDatabase.kt)
-Mở file app/src/main/java/com/example/roadtolegend/data/SquadDatabase.kt:
-Tìm đến baseSquadsByClub và thêm danh sách cầu thủ của CLB:
-code
-Kotlin
-"es_real_madrid" to listOf(
-    ClubPlayer(
-        id = "es_courtois",
-        name = "Thibaut Courtois",
-        clubId = "es_real_madrid",
-        number = 1,
-        age = 32,
-        nationality = "Bỉ",
-        nationalityCode = "BE",
-        position = Position.GK,
-        ovr = 89, pac = 46, sho = 20, pas = 74, dri = 50, def = 89, phy = 88,
-        marketValue = 40_000_000,
-        weeklyWage = 250_000,
-        preferredFoot = Foot.LEFT,
-        heightCm = 200,
-        avatarResName = "player_courtois" // Đặt file ảnh player_courtois.png vào app/src/main/res/drawable/
-    )
-)
-(Nếu chưa có ảnh trong drawable, hệ thống tự động sinh Avatar Vector theo số áo và màu áo CLB).
+
+## 5. TÙY BIẾN ASSETS & MOD DỮ LIỆU (MODDING)
+Chi tiết tài liệu hướng dẫn thêm logo CLB, logo giải đấu, ảnh chân dung cầu thủ và bổ sung các giải đấu mới (Anh, Tây Ban Nha, Đức, Ý, Pháp...) được trình bày đầy đủ tại:
+👉 `docs/MODDING_AND_ASSETS_GUIDE.md`
+
 
 
