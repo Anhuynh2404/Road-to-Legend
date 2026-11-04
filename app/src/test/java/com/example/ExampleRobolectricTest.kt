@@ -74,4 +74,59 @@ class ExampleRobolectricTest {
     assertEquals(1, loadedFromSlot!!.incomingOffers.size)
     assertEquals("Thái Lan", loadedFromSlot.incomingOffers.first().buyingClubCountry)
   }
+
+  @Test
+  fun testAwardsEngineAndTrophyCabinet() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val vLeague1 = DefaultDatabase.initializeLeague("vleague_1")
+    val player = Player(
+      id = "p_superstar",
+      name = "Nguyễn Văn Hùng",
+      age = 20,
+      primaryPosition = Position.ST,
+      pac = 85.0,
+      sho = 88.0,
+      pas = 80.0,
+      dri = 84.0,
+      sta = 82.0,
+      def = 40.0
+    )
+    player.careerStats.matchesPlayed = 24
+    player.careerStats.goals = 22
+    player.careerStats.assists = 11
+    player.careerStats.totalRatingPoints = 24 * 7.8
+
+    val state = CareerState(
+      seasonNumber = 1,
+      currentYear = 2026,
+      currentWeek = 26,
+      player = player,
+      currentClub = vLeague1.clubs.first(),
+      currentLeague = vLeague1,
+      currentContract = Contract(clubId = vLeague1.clubs.first().id, clubName = vLeague1.clubs.first().name, weeklyWage = 1500, startSeason = 1, endSeason = 3),
+      nextOpponent = vLeague1.clubs.last()
+    )
+
+    // Test AwardsEngine
+    val ceremony = com.example.roadtolegend.engine.AwardsEngine.generateSeasonAwards(state, kotlin.random.Random(42))
+    assertNotNull(ceremony)
+    assertEquals(1, ceremony.seasonNumber)
+    assertEquals(2026, ceremony.year)
+    // Cầu thủ 22 bàn chắc chắn đoạt Vua phá lưới
+    val goldenBoot = ceremony.awards.find { it.awardKey == "GOLDEN_BOOT" }
+    assertNotNull(goldenBoot)
+    assertEquals(true, goldenBoot!!.isUser)
+    assertEquals(player.name, goldenBoot.winnerName)
+
+    // Thêm cúp vào tủ danh hiệu
+    state.trophiesCabinet.addAll(ceremony.userEarnedTrophies)
+    assertEquals(true, state.trophiesCabinet.isNotEmpty())
+
+    // Test Save/Load
+    val json = SaveGameManager.serializeState(state)
+    val loadedState = SaveGameManager.deserializeState(json)
+    assertNotNull(loadedState)
+    assertEquals(state.trophiesCabinet.size, loadedState!!.trophiesCabinet.size)
+    assertEquals(state.trophiesCabinet.first().name, loadedState.trophiesCabinet.first().name)
+  }
 }

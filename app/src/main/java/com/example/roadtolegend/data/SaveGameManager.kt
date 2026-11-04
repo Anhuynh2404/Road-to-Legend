@@ -330,7 +330,22 @@ object SaveGameManager {
                 nObj.put("timestamp", n.timestamp)
                 newsArray.put(nObj)
             }
-            json.put("newsFeed", newsArray)
+            // Trophies Cabinet
+            val trophiesArray = JSONArray()
+            state.trophiesCabinet.forEach { t ->
+                val tObj = JSONObject()
+                tObj.put("id", t.id)
+                tObj.put("name", t.name)
+                tObj.put("category", t.category.name)
+                tObj.put("year", t.year)
+                tObj.put("seasonNumber", t.seasonNumber)
+                tObj.put("competitionOrOrganization", t.competitionOrOrganization)
+                tObj.put("iconEmoji", t.iconEmoji)
+                tObj.put("description", t.description)
+                tObj.put("badgeColorHex", t.badgeColorHex)
+                trophiesArray.put(tObj)
+            }
+            json.put("trophiesCabinet", trophiesArray)
 
             return json.toString()
         } catch (e: Exception) {
@@ -749,6 +764,32 @@ object SaveGameManager {
                 TrainingIntensity.MEDIUM
             }
 
+            val trophiesCabinet = mutableListOf<com.example.roadtolegend.model.TrophyItem>()
+            val trophiesArr = json.optJSONArray("trophiesCabinet")
+            if (trophiesArr != null) {
+                for (i in 0 until trophiesArr.length()) {
+                    val tObj = trophiesArr.getJSONObject(i)
+                    val cat = try {
+                        com.example.roadtolegend.model.TrophyCategory.valueOf(tObj.optString("category", "INDIVIDUAL"))
+                    } catch (e: Exception) {
+                        com.example.roadtolegend.model.TrophyCategory.INDIVIDUAL
+                    }
+                    trophiesCabinet.add(
+                        com.example.roadtolegend.model.TrophyItem(
+                            id = tObj.optString("id", java.util.UUID.randomUUID().toString()),
+                            name = tObj.optString("name", "Danh hiệu"),
+                            category = cat,
+                            year = tObj.optInt("year", 2026),
+                            seasonNumber = tObj.optInt("seasonNumber", 1),
+                            competitionOrOrganization = tObj.optString("competitionOrOrganization", ""),
+                            iconEmoji = tObj.optString("iconEmoji", "🏆"),
+                            description = tObj.optString("description", ""),
+                            badgeColorHex = tObj.optString("badgeColorHex", "#FFD700")
+                        )
+                    )
+                }
+            }
+
             CareerState(
                 seasonNumber = json.optInt("seasonNumber", 1),
                 currentYear = json.optInt("currentYear", 2026),
@@ -776,7 +817,8 @@ object SaveGameManager {
                 isDeadlineDay = json.optBoolean("isDeadlineDay", false),
                 isTransferListed = json.optBoolean("isTransferListed", false),
                 transferRequestSubmitted = json.optBoolean("transferRequestSubmitted", false),
-                aiCompletedTransfers = aiCompletedTransfers
+                aiCompletedTransfers = aiCompletedTransfers,
+                trophiesCabinet = trophiesCabinet
             )
         } catch (e: Exception) {
             e.printStackTrace()

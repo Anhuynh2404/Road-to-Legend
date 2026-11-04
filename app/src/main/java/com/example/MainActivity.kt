@@ -47,7 +47,9 @@ import com.example.roadtolegend.ui.screens.ContractScreen
 import com.example.roadtolegend.ui.screens.FinanceScreen
 import com.example.roadtolegend.ui.screens.MoreMenuScreen
 import com.example.roadtolegend.ui.screens.NewsScreen
+import com.example.roadtolegend.ui.components.AwardsCeremonyDialog
 import com.example.roadtolegend.ui.screens.TransferScreen
+import com.example.roadtolegend.ui.screens.TrophyCabinetScreen
 import com.example.roadtolegend.ui.screens.CharacterCreationScreen
 import com.example.roadtolegend.ui.screens.DashboardScreen
 import com.example.roadtolegend.ui.screens.LeagueTableScreen
@@ -117,9 +119,18 @@ fun MainAppContainer(viewModel: CareerViewModel) {
         }
     }
 
+    // Hiển thị Lễ trao giải cuối mùa & Gala Quả Bóng Vàng nếu có
+    careerState?.pendingCeremonyResult?.let { ceremony ->
+        AwardsCeremonyDialog(
+            ceremony = ceremony,
+            onAcceptAndContinue = { viewModel.dismissSeasonCeremony() }
+        )
+    }
+
     val isMoreGroup = currentTab in listOf(
         MainTab.MORE,
         MainTab.CAREER_STATS,
+        MainTab.TROPHY_CABINET,
         MainTab.CONTRACT,
         MainTab.TRANSFER,
         MainTab.AGENT,
@@ -137,6 +148,7 @@ fun MainAppContainer(viewModel: CareerViewModel) {
             when {
                 currentTab in listOf(
                     MainTab.CAREER_STATS,
+                    MainTab.TROPHY_CABINET,
                     MainTab.CONTRACT,
                     MainTab.TRANSFER,
                     MainTab.AGENT,
@@ -192,9 +204,9 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             icon = { Icon(Icons.Default.Dashboard, contentDescription = "Trang chủ") },
                             label = { Text("Trang chủ", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
+                                selectedIconColor = Color.White,
+                                selectedTextColor = PitchGreen,
+                                indicatorColor = PitchGreen,
                                 unselectedIconColor = TextMuted,
                                 unselectedTextColor = TextMuted
                             )
@@ -207,9 +219,9 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             icon = { Icon(Icons.Default.SportsSoccer, contentDescription = "Trận đấu") },
                             label = { Text("Trận đấu", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
+                                selectedIconColor = Color.White,
+                                selectedTextColor = PitchGreen,
+                                indicatorColor = PitchGreen,
                                 unselectedIconColor = TextMuted,
                                 unselectedTextColor = TextMuted
                             )
@@ -222,9 +234,9 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             icon = { Icon(Icons.Default.FitnessCenter, contentDescription = "Tập luyện") },
                             label = { Text("Tập luyện", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
+                                selectedIconColor = Color.White,
+                                selectedTextColor = PitchGreen,
+                                indicatorColor = PitchGreen,
                                 unselectedIconColor = TextMuted,
                                 unselectedTextColor = TextMuted
                             )
@@ -237,9 +249,9 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             icon = { Icon(Icons.Default.Leaderboard, contentDescription = "Giải đấu") },
                             label = { Text("Giải đấu", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
+                                selectedIconColor = Color.White,
+                                selectedTextColor = PitchGreen,
+                                indicatorColor = PitchGreen,
                                 unselectedIconColor = TextMuted,
                                 unselectedTextColor = TextMuted
                             )
@@ -266,9 +278,9 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             },
                             label = { Text("Thêm", fontSize = 10.sp, maxLines = 1) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = DarkBg,
-                                selectedTextColor = GoldPrimary,
-                                indicatorColor = GoldPrimary,
+                                selectedIconColor = Color.White,
+                                selectedTextColor = PitchGreen,
+                                indicatorColor = PitchGreen,
                                 unselectedIconColor = TextMuted,
                                 unselectedTextColor = TextMuted
                             )
@@ -297,6 +309,7 @@ fun MainAppContainer(viewModel: CareerViewModel) {
                             MainTab.LEAGUE_TABLE -> LeagueTableScreen(careerState = state)
                             MainTab.MORE -> MoreMenuScreen(careerState = state, viewModel = viewModel)
                             MainTab.CAREER_STATS -> CareerStatsScreen(careerState = state, viewModel = viewModel)
+                            MainTab.TROPHY_CABINET -> TrophyCabinetScreen(careerState = state, viewModel = viewModel)
                             MainTab.CONTRACT -> ContractScreen(careerState = state, viewModel = viewModel)
                             MainTab.TRANSFER -> TransferScreen(careerState = state, viewModel = viewModel)
                             MainTab.AGENT -> AgentScreen(careerState = state, viewModel = viewModel)

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -51,6 +52,7 @@ import com.example.ui.theme.DarkCardBorder
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.GoalCoral
+import com.example.ui.theme.GoldLight
 import com.example.ui.theme.GoldPrimary
 import com.example.ui.theme.PitchGreen
 import com.example.ui.theme.TextMuted
@@ -82,6 +84,14 @@ fun MoreMenuScreen(
             icon = Icons.Default.Assessment,
             iconColor = GoldPrimary,
             targetTab = MainTab.CAREER_STATS
+        ),
+        MoreMenuItem(
+            title = "Tủ danh hiệu",
+            subtitle = "Cúp cá nhân, CLB & ĐTQG",
+            icon = Icons.Default.EmojiEvents,
+            iconColor = GoldLight,
+            targetTab = MainTab.TROPHY_CABINET,
+            badgeCount = careerState.trophiesCabinet.size
         ),
         MoreMenuItem(
             title = "Hợp đồng",

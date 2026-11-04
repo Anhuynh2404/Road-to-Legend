@@ -180,7 +180,7 @@ fun PlayerAvatar(
                     .align(Alignment.TopEnd)
                     .padding(3.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(DarkSurface.copy(alpha = 0.75f))
+                    .background(Color(0xFF0F172A).copy(alpha = 0.75f))
                     .padding(horizontal = 2.dp, vertical = 0.5.dp)
             ) {
                 Text(

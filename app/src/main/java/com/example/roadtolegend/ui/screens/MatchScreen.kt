@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.roadtolegend.model.CareerState
@@ -279,11 +280,28 @@ fun MatchScreen(
                 }
             }
 
-            // 3. DIỄN BIẾN TRẬN ĐẤU CHI TIẾT (LIVE COMMENTARY)
+            // 3. MỤC "CÁC TRẬN KHÁC TRONG VÒNG" (Đưa lên trước theo yêu cầu)
+            if (roundFixtures.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "CÁC TRẬN KHÁC TRONG VÒNG ${careerState.currentWeek}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GoldPrimary
+                    )
+                }
+
+                items(roundFixtures.filter { !it.isUserMatch }) { fixture ->
+                    RoundFixtureCard(fixture = fixture, isFictional = isFictional)
+                }
+            }
+
+            // 4. DIỄN BIẾN TRẬN ĐẤU CHI TIẾT (LIVE COMMENTARY)
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Icon(Icons.Default.SportsSoccer, contentDescription = "Live", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -308,23 +326,6 @@ fun MatchScreen(
             } else {
                 items(visibleEvents) { event ->
                     MatchEventCommentaryItem(event = event, userName = careerState.player.name)
-                }
-            }
-
-            // 4. MỤC "CÁC TRẬN KHÁC TRONG VÒNG" (SECTION B)
-            if (roundFixtures.isNotEmpty()) {
-                item {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "CÁC TRẬN KHÁC TRONG VÒNG ${careerState.currentWeek}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GoldPrimary
-                    )
-                }
-
-                items(roundFixtures.filter { !it.isUserMatch }) { fixture ->
-                    RoundFixtureCard(fixture = fixture, isFictional = isFictional)
                 }
             }
 
@@ -526,8 +527,56 @@ fun PostMatchDetailedSummary(match: Match, playerName: String, isFictional: Bool
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("ĐÁNH GIÁ: $playerName (${perf.userRole.titleVi})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                            Text("ĐIỂM: ${perf.rating}", fontSize = 14.sp, fontWeight = FontWeight.Black, color = if (perf.rating >= 7.5) GoldPrimary else PitchGreen)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    text = "ĐÁNH GIÁ CẦU THỦ",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextMuted
+                                )
+                                Text(
+                                    text = playerName,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = perf.userRole.titleVi,
+                                    fontSize = 11.sp,
+                                    color = GoldLight,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Surface(
+                                color = if (perf.rating >= 7.5) GoldPrimary else PitchGreen,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "${perf.rating}",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = DarkBg
+                                    )
+                                    Text(
+                                        text = "ĐIỂM",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = DarkBg.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
                         }
 
                         if (perf.isManOfTheMatch) {

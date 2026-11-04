@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.Warning
@@ -195,31 +197,42 @@ fun DashboardScreen(
                 border = CardDefaults.outlinedCardBorder()
             ) {
                 Row(
-                    modifier = Modifier.padding(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = when {
-                                isDeadline -> "🔥 DEADLINE DAY: Hôm nay chốt sổ chuyển nhượng!"
-                                isWindowOpen -> "⚡ Cửa sổ chuyển nhượng đang mở"
-                                careerState.currentWeek < 12 -> "⏳ Cửa sổ mùa đông mở ở Tuần 12 (còn ${12 - careerState.currentWeek} tuần)"
-                                else -> "⏳ Cửa sổ mở ở Tuần 24 (còn ${24 - careerState.currentWeek} tuần)"
-                            },
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDeadline) GoalCoral else if (isWindowOpen) PitchGreen else TextSecondary
-                        )
-                    }
-
                     Text(
-                        text = "Chi tiết ➔",
+                        text = when {
+                            isDeadline -> "🔥 DEADLINE: Hôm nay chốt sổ chuyển nhượng!"
+                            isWindowOpen -> "⚡ Cửa sổ chuyển nhượng đang mở"
+                            careerState.currentWeek < 12 -> "⏳ Cửa sổ đông mở Tuần 12 (còn ${12 - careerState.currentWeek} tuần)"
+                            else -> "⏳ Cửa sổ mở Tuần 24 (còn ${24 - careerState.currentWeek} tuần)"
+                        },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = GoldPrimary,
-                        modifier = Modifier.clickable { viewModel.selectTab(MainTab.TRANSFER) }
+                        color = if (isDeadline) GoalCoral else if (isWindowOpen) PitchGreen else TextSecondary,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+
+                    Surface(
+                        color = GoldPrimary.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.clickable { viewModel.selectTab(MainTab.TRANSFER) }
+                    ) {
+                        Text(
+                            text = "Chi tiết ➔",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GoldLight,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -525,6 +538,36 @@ fun DashboardScreen(
                         icon = Icons.Default.SportsSoccer,
                         iconTint = Color(0xFFAB47BC),
                         onClick = { viewModel.selectTab(MainTab.TRAINING) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Hàng 4: Tủ danh hiệu & Sự nghiệp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CareerHubShortcutCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Tủ danh hiệu",
+                        subtitle = "Cúp & Huân chương",
+                        badgeText = "${careerState.trophiesCabinet.size} cúp",
+                        badgeColor = GoldLight,
+                        icon = Icons.Default.EmojiEvents,
+                        iconTint = GoldLight,
+                        onClick = { viewModel.selectTab(MainTab.TROPHY_CABINET) }
+                    )
+
+                    CareerHubShortcutCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Sự nghiệp",
+                        subtitle = "Cột mốc & Lịch sử",
+                        badgeText = "${careerState.player.careerStats.matchesPlayed} trận",
+                        badgeColor = Color(0xFF64B5F6),
+                        icon = Icons.Default.Assessment,
+                        iconTint = Color(0xFF64B5F6),
+                        onClick = { viewModel.selectTab(MainTab.CAREER_STATS) }
                     )
                 }
             }

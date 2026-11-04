@@ -177,17 +177,17 @@ fun TrainingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable(enabled = canAfford) {
+                        .clickable {
                             viewModel.selectTrainingFocus(focus)
                         }
                         .border(
-                            width = if (isSelected) 1.5.dp else 1.dp,
+                            width = if (isSelected) 2.dp else 1.dp,
                             color = if (isSelected) GoldPrimary else DarkCardBorder,
                             shape = RoundedCornerShape(12.dp)
                         ),
                     color = when {
-                        !canAfford -> DarkSurface.copy(alpha = 0.5f)
-                        isSelected -> DarkSurfaceVariant
+                        isSelected -> GoldPrimary.copy(alpha = 0.15f)
+                        !canAfford -> DarkSurface.copy(alpha = 0.65f)
                         else -> DarkSurface
                     }
                 ) {
@@ -289,7 +289,11 @@ fun TrainingScreen(
             ) {
                 Icon(Icons.Default.FitnessCenter, contentDescription = "Train", modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("XÁC NHẬN TẬP LUYỆN (CHI PHÍ €$selectedCost)", fontSize = 13.sp, fontWeight = FontWeight.Black)
+                Text(
+                    text = if (canPay) "XÁC NHẬN TẬP LUYỆN (CHI PHÍ €$selectedCost)" else "KHÔNG ĐỦ TIỀN (€$selectedCost) - HÃY CHỌN BÀI TẬP KHÁC",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
             Spacer(modifier = Modifier.height(20.dp))
         }

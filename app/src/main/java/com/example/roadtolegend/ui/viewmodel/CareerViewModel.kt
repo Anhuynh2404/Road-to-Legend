@@ -61,6 +61,7 @@ enum class MainTab {
     LEAGUE_TABLE,
     MORE,
     CAREER_STATS,
+    TROPHY_CABINET,
     CONTRACT,
     TRANSFER,
     AGENT,
@@ -302,14 +303,18 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
     // ---------------------------------------------------------
     fun selectTrainingFocus(focus: TrainingFocus) {
         val state = _careerState.value ?: return
-        state.selectedTrainingFocus = focus
-        _careerState.value = state.copy(selectedTrainingFocus = focus)
+        val updated = state.copy(selectedTrainingFocus = focus)
+        _careerState.value = updated
+        showToast("Đã chọn bài tập: ${focus.titleVi}")
+        SaveGameManager.saveGame(context, 0, updated)
     }
 
     fun selectTrainingIntensity(intensity: TrainingIntensity) {
         val state = _careerState.value ?: return
-        state.selectedTrainingIntensity = intensity
-        _careerState.value = state.copy(selectedTrainingIntensity = intensity)
+        val updated = state.copy(selectedTrainingIntensity = intensity)
+        _careerState.value = updated
+        showToast("Đã chọn cường độ: ${intensity.titleVi}")
+        SaveGameManager.saveGame(context, 0, updated)
     }
 
     fun executeTrainingNow() {
@@ -995,6 +1000,24 @@ class CareerViewModel(application: Application) : AndroidViewModel(application) 
             state.player.addMilestoneIfNew("Chiếc cúp đầu tiên", trophyName, "Mùa ${state.seasonNumber}", "🏆")
             showToast("🏆 XUẤT SẮC! Bạn đã giành chức VÔ ĐỊCH ${state.currentLeague.name}!")
         }
+
+        // TỔ CHỨC LỄ TRAO GIẢI CUỐI MÙA & GALA QUẢ BÓNG VÀNG
+        val ceremony = com.example.roadtolegend.engine.AwardsEngine.generateSeasonAwards(state, random)
+        state.pendingCeremonyResult = ceremony
+        ceremony.userEarnedTrophies.forEach { trophy ->
+            if (state.trophiesCabinet.none { it.name == trophy.name && it.seasonNumber == trophy.seasonNumber }) {
+                state.trophiesCabinet.add(0, trophy)
+            }
+        }
+
+        val awardsNews = "LỄ TRAO GIẢI: Khép lại mùa bóng ${state.seasonNumber} (${state.currentYear}). Các danh hiệu cá nhân và Quả bóng vàng đã được trao!"
+        state.newsFeed.add(0, NewsItem(UUID.randomUUID().toString(), state.currentWeek, awardsNews, "Chi tiết các cúp và kỷ niệm chương được lưu giữ tại Tủ Danh Hiệu."))
+    }
+
+    fun dismissSeasonCeremony() {
+        val state = _careerState.value ?: return
+        state.pendingCeremonyResult = null
+        startNextSeason()
     }
 
     fun startNextSeason() {

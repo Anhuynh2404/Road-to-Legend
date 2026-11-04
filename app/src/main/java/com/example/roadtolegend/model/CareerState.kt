@@ -48,5 +48,12 @@ data class CareerState(
     var isTransferListed: Boolean = false,
     var transferRequestSubmitted: Boolean = false,
     val aiCompletedTransfers: MutableList<AITransferRecord> = mutableListOf(),
-    val freeAgents: MutableList<ClubPlayer> = mutableListOf()
+    val freeAgents: MutableList<ClubPlayer> = mutableListOf(),
+
+    // ==========================================
+    // TỦ DANH HIỆU & LỄ TRAO GIẢI CUỐI MÙA
+    // ==========================================
+    val trophiesCabinet: MutableList<TrophyItem> = mutableListOf(),
+    var pendingCeremonyResult: SeasonAwardsCeremony? = null
 )
+

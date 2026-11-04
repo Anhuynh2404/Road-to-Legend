@@ -22,7 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -60,6 +63,7 @@ import com.example.ui.theme.DarkCardBorder
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.GoalCoral
+import com.example.ui.theme.GoldLight
 import com.example.ui.theme.GoldPrimary
 import com.example.ui.theme.PitchGreen
 import com.example.ui.theme.TextMuted
@@ -80,6 +84,7 @@ fun LeagueTableScreen(
     var selectedPositionCategory by remember { mutableStateOf<PositionCategory?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var inspectingPlayer by remember { mutableStateOf<ClubPlayer?>(null) }
+    var isLeagueDropdownExpanded by remember { mutableStateOf(false) }
 
     val currencyFormatter = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val isFictional = careerState.isFictionalMode
@@ -186,37 +191,113 @@ fun LeagueTableScreen(
                 }
             }
 
-            // Thanh chọn giải đấu (V-League 1 / V-League 2 / Cúp Quốc Gia...)
+            // Thanh chọn giải đấu dạng Dropdown nhanh & gọn
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    leaguesList.forEachIndexed { idx, league ->
-                        val isSelected = selectedLeagueIndex == idx
-                        Surface(
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { isLeagueDropdownExpanded = true }
+                            .border(1.dp, GoldPrimary.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                        color = DarkSurface
+                    ) {
+                        Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("⚽", fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "GIẢI ĐẤU ĐANG THEO DÕI",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextMuted
+                                    )
+                                    Text(
+                                        text = activeLeague.name,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = GoldLight,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    color = DarkSurfaceVariant,
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = "${activeLeague.country} • Hạng ${activeLeague.tier}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextSecondary,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Chọn giải đấu",
+                                    tint = GoldPrimary
+                                )
+                            }
+                        }
+                    }
+
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = isLeagueDropdownExpanded,
+                        onDismissRequest = { isLeagueDropdownExpanded = false },
+                        modifier = Modifier
+                            .background(DarkSurface)
+                            .border(1.dp, GoldPrimary.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    ) {
+                        leaguesList.forEachIndexed { idx, league ->
+                            val isSelected = selectedLeagueIndex == idx
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = league.name,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
+                                            color = if (isSelected) GoldPrimary else TextPrimary,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "${league.country} (Hạng ${league.tier})",
+                                            fontSize = 11.sp,
+                                            color = TextMuted
+                                        )
+                                    }
+                                },
+                                onClick = {
                                     selectedLeagueIndex = idx
                                     selectedClubId = league.clubs.firstOrNull()?.id ?: careerState.currentClub.id
+                                    isLeagueDropdownExpanded = false
+                                },
+                                leadingIcon = {
+                                    if (isSelected) {
+                                        Icon(Icons.Default.Check, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(16.dp))
+                                    } else {
+                                        Spacer(modifier = Modifier.size(16.dp))
+                                    }
                                 }
-                                .border(
-                                    width = if (isSelected) 1.5.dp else 0.dp,
-                                    color = if (isSelected) GoldPrimary else DarkCardBorder,
-                                    shape = RoundedCornerShape(8.dp)
-                                ),
-                            color = if (isSelected) DarkSurfaceVariant else DarkSurface
-                        ) {
-                            Text(
-                                text = league.name,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
-                                color = if (isSelected) GoldPrimary else TextSecondary
                             )
                         }
                     }

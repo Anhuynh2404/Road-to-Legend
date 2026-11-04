@@ -560,51 +560,58 @@ fun TransferScreen(
                                             onClick = { viewModel.startOfferNegotiation(offer) },
                                             modifier = Modifier.weight(1f),
                                             colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = DarkBg),
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Handshake, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("ĐÀM PHÁN", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Icon(Icons.Default.Handshake, contentDescription = null, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text("ĐÀM PHÁN", fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                                         }
 
                                         Button(
                                             onClick = { viewModel.acceptTransferOfferDirectly(offer) },
                                             modifier = Modifier.weight(1f),
                                             colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = DarkBg),
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("ĐỒNG Ý", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text("ĐỒNG Ý", fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                                         }
 
                                         OutlinedButton(
                                             onClick = { viewModel.rejectTransferOffer(offer) },
-                                            shape = RoundedCornerShape(8.dp)
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("TỪ CHỐI", fontSize = 11.sp, color = GoalCoral)
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text("TỪ CHỐI", fontSize = 10.sp, color = GoalCoral, maxLines = 1)
                                         }
                                     } else {
                                         Button(
                                             onClick = { viewModel.acceptLoanOffer(offer) },
-                                            modifier = Modifier.weight(1f),
+                                            modifier = Modifier.weight(1.2f),
                                             colors = ButtonDefaults.buttonColors(containerColor = WarningAmber, contentColor = DarkBg),
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(15.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("ĐỒNG Ý ĐI MƯỢN", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("ĐỒNG Ý MƯỢN", fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                                         }
 
                                         OutlinedButton(
                                             onClick = { viewModel.rejectTransferOffer(offer) },
-                                            shape = RoundedCornerShape(8.dp)
+                                            modifier = Modifier.weight(0.8f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = GoalCoral, modifier = Modifier.size(15.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("TỪ CHỐI", fontSize = 11.sp, color = GoalCoral)
+                                            Text("TỪ CHỐI", fontSize = 10.sp, color = GoalCoral, maxLines = 1)
                                         }
                                     }
                                 }

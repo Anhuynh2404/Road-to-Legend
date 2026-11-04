@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.roadtolegend.model.Club
+import com.example.ui.theme.DarkCardBorder
+import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.GoldPrimary
 
 /**
